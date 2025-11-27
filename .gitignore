@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python venv
+backend/.venv/
+backend/venv/
+
+# Python cache
+**/__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Env files
+*.env
+
+# Data / local artifacts
+vectorstore/
+*.sqlite3
+

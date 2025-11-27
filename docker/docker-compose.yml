@@ -1,0 +1,90 @@
+# docker-compose.yml
+# ==================
+# 
+# This configuration runs the backend and frontend in Docker,
+# while connecting to llama.cpp running on your host machine.
+#
+# PREREQUISITES:
+# 1. llama.cpp server must be running on your Mac (port 8080)
+# 2. Run: docker-compose up --build
+#
+# ACCESS:
+# - Frontend: http://localhost:3000
+# - Backend API: http://localhost:8000
+# - LLM (on host): http://localhost:8080
+
+
+services:
+  # ===========================================================================
+  # BACKEND (FastAPI)
+  # ===========================================================================
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    container_name: ai-console-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # LLM Configuration - connects to host machine
+      - LLM_PROVIDER=local
+      - LLM_BASE_URL=http://host.docker.internal:8080
+      
+      # Vector Store - persisted in volume
+      - CHROMA_PERSIST_DIR=/app/vectorstore/chroma
+      
+      # Optional API keys (add yours here or use .env file)
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+    env_file:
+      - ../backend/.env
+    volumes:
+      # Persist vector database between restarts
+      - vectorstore_data:/app/vectorstore/chroma
+      
+      # Persist uploaded documents (optional)
+      - uploads_data:/app/uploads
+    
+    # This allows container to access host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
+    # Health check to ensure backend is ready
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Restart policy
+    restart: unless-stopped
+
+  # ===========================================================================
+  # FRONTEND (React + Nginx)
+  # ===========================================================================
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    container_name: ai-console-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# ===========================================================================
+# VOLUMES (Persistent Storage)
+# ===========================================================================
+volumes:
+  vectorstore_data:
+    name: ai-console-vectorstore
+  uploads_data:
+    name: ai-console-uploads
