@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MessageSquare, FileText, Plug } from 'lucide-react';
+import { MessageSquare, FileText, Plug, Settings as SettingsIcon } from 'lucide-react';
 import Chat from './components/Chat';
 import DocumentUpload from './components/DocumentUpload';
 import Connectors from './components/Connectors';
+import Settings from './components/Settings';
 
 const queryClient = new QueryClient();
 
@@ -19,7 +20,8 @@ function AppContent() {
   const tabs = [
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'documents', label: 'Documents', icon: FileText },
-    { id: 'connectors', label: 'Connectors', icon: Plug }
+    { id: 'connectors', label: 'Connectors', icon: Plug },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon }
   ];
 
   return (
@@ -103,6 +105,7 @@ function AppContent() {
           {activeTab === 'connectors' && (
             <Connectors onToolsChange={setEnabledTools} />
           )}
+          {activeTab === 'settings' && <Settings />}
         </main>
       </div>
     </div>

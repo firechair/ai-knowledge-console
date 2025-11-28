@@ -111,6 +111,11 @@ OPENWEATHER_API_KEY=
 ```
 When running Docker, backend uses `env_file: ../backend/.env` and internally reaches the LLM at `http://host.docker.internal:8080`.
 
+Use the provided example to create your local env:
+```bash
+cp backend/.env.example backend/.env
+```
+
 ## Usage
 1. Start the LLM server on host at port 8080.
 2. Start the app (Docker or local dev).
@@ -145,11 +150,109 @@ When running Docker, backend uses `env_file: ../backend/.env` and internally rea
 
 This ensures every change is built and validated automatically; main branch produces ready-to-run images.
 
+## Deploy from GHCR
+Use the prebuilt images:
+```bash
+cd deploy
+docker compose -f docker-compose.ghcr.yml up -d
+```
+The compose file pulls:
+- `ghcr.io/firechair/ai-knowledge-console/backend:latest`
+- `ghcr.io/firechair/ai-knowledge-console/frontend:latest`
+
+## TLS with Traefik
+Requirements:
+- DNS A/AAAA record for your domain pointing to the server
+- `TRAEFIK_EMAIL` and `TRAEFIK_DOMAIN` set
+
+Steps:
+```bash
+cd deploy/traefik
+mkdir -p acme && touch acme/acme.json && chmod 600 acme/acme.json
+TRAEFIK_EMAIL=you@example.com TRAEFIK_DOMAIN=console.example.com \
+  docker compose -f docker-compose.traefik.yml up -d
+```
+Routes:
+- `https://<domain>/` → frontend (Nginx)
+- `https://<domain>/api/...` → backend (FastAPI)
+HTTP is redirected to HTTPS automatically.
+
+## Local Reverse Proxy (Traefik)
+Run the stack locally with Traefik (HTTP only):
+```bash
+cd deploy/traefik
+docker compose -f docker-compose.local.yml up -d
+```
+Routes:
+- `http://localhost/` → frontend (Nginx)
+- `http://localhost/api/...` → backend (FastAPI)
+
+## Configuration Guide
+Backend (`backend/.env`):
+- `LLM_PROVIDER` — e.g. `local`
+- `LLM_BASE_URL` — e.g. `http://localhost:8080`
+- `CHROMA_PERSIST_DIR` — vectorstore path
+- `GITHUB_TOKEN` — GitHub API token (optional)
+- `OPENWEATHER_API_KEY` — OpenWeather token (optional)
+- `allowed_origins` — comma-separated origins for CORS
+- `max_upload_mb` — upload size limit
+- `rate_limit_enabled`, `rate_limit_requests`, `rate_limit_window_sec`
+
+Frontend:
+- `VITE_API_URL` — defaults to `/api` via Nginx proxy; override if needed
+
+Docker Compose:
+- `env_file` — backend reads `../backend/.env`
+- `volumes` — mount persistent storage for vectorstore/uploads
+- `extra_hosts` — Linux `host-gateway` to reach host LLM
+
+Traefik:
+- Local demo: use `docker-compose.local.yml` (HTTP only)
+- Production: use the TLS compose with `TRAEFIK_EMAIL` and `TRAEFIK_DOMAIN`
+
+
+
 ## Troubleshooting
 - Docker daemon not running: start Docker Desktop (macOS/Windows) or ensure Docker Engine service is active (Linux).
 - Linux LLM connectivity: use `host-gateway` mapping (already set). Confirm host LLM is listening on `:8080`.
 - HuggingFace hub compatibility: repo pins `huggingface_hub==0.25.2` to match `sentence-transformers==2.2.2`.
 - SSL warnings (`urllib3`): cosmetic on macOS LibreSSL, does not affect local development.
+
+LLM startup checks:
+- `curl http://localhost:8080/completion` should return an error or a JSON structure (server reachable)
+- Increase timeouts if responses are large or model is slow
+
+Proxy/WebSockets:
+- Traefik config includes upgrade headers; if self-hosting a different proxy, ensure `Upgrade` and `Connection` headers pass through
+
+## Single-VM Deployment
+Minimum specs:
+- 4 vCPU, 8 GB RAM (more for larger models)
+- Persistent storage for `vectorstore` and uploads
+
+Run as a service:
+```bash
+cd deploy/docker-compose.ghcr.yml
+docker compose up -d
+```
+
+Systemd example:
+```ini
+[Unit]
+Description=AI Knowledge Console
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+WorkingDirectory=/opt/ai-knowledge-console/deploy
+Environment=LLM_BASE_URL=http://localhost:8080
+ExecStart=/usr/bin/docker compose -f docker-compose.ghcr.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.ghcr.yml down
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
 
 ## License
 Add your preferred license (MIT/Apache-2.0) before publishing.

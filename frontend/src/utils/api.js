@@ -36,3 +36,6 @@ export const createChatSocket = () => {
   const wsUrl = API_BASE.replace('http', 'ws') + '/api/chat/ws';
   return new WebSocket(wsUrl);
 };
+
+// Settings APIs
+export const setEmbeddingModel = (name) => api.post('/api/settings/embedding_model', { name });

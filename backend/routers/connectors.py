@@ -15,7 +15,9 @@ connectors_store = {
     "github": {"enabled": False, "configured": False},
     "weather": {"enabled": False, "configured": False},
     "crypto": {"enabled": True, "configured": True},  # No API key needed
-    "hackernews": {"enabled": True, "configured": True}  # No API key needed
+    "hackernews": {"enabled": True, "configured": True},  # No API key needed
+    "drive": {"enabled": False, "configured": False},
+    "slack": {"enabled": False, "configured": False}
 }
 
 @router.get("/")

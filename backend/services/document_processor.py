@@ -36,33 +36,41 @@ class DocumentProcessor:
         """Split text into overlapping chunks"""
         chunk_size = self.settings.chunk_size
         overlap = self.settings.chunk_overlap
-        
+
         chunks = []
         metadata = []
-        
-        # Simple chunking by character count with overlap
+
         start = 0
         chunk_index = 0
-        
+
         while start < len(text):
             end = start + chunk_size
             chunk = text[start:end]
-            
-            # Try to break at sentence boundary
+
             if end < len(text):
-                last_period = chunk.rfind(". ")
-                if last_period > chunk_size // 2:
-                    chunk = chunk[:last_period + 1]
-                    end = start + last_period + 1
-            
+                candidates = [chunk.rfind(". "), chunk.rfind("! "), chunk.rfind("? ")]
+                last = max(candidates)
+                if last > chunk_size // 2:
+                    chunk = chunk[:last + 1]
+                    end = start + last + 1
+
             chunks.append(chunk.strip())
             metadata.append({
                 "filename": filename,
                 "chunk_index": chunk_index,
                 "start_char": start
             })
-            
+
             start = end - overlap
             chunk_index += 1
-        
-        return chunks, metadata
+
+        deduped = []
+        seen = set()
+        md_out = []
+        for c, m in zip(chunks, metadata):
+            k = c.strip()
+            if k and k not in seen:
+                seen.add(k)
+                deduped.append(k)
+                md_out.append(m)
+        return deduped, md_out

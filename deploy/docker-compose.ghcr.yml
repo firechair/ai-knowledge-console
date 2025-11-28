@@ -1,0 +1,42 @@
+services:
+  backend:
+    image: ghcr.io/firechair/ai-knowledge-console/backend:latest
+    container_name: ai-console-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../backend/.env
+    volumes:
+      - vectorstore_data:/app/vectorstore/chroma
+      - uploads_data:/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/firechair/ai-knowledge-console/frontend:latest
+    container_name: ai-console-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  vectorstore_data:
+    name: ai-console-vectorstore
+  uploads_data:
+    name: ai-console-uploads
+
