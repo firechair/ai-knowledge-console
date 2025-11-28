@@ -125,6 +125,10 @@ cp backend/.env.example backend/.env
    - Optionally enable tools (`github`, `crypto`, `weather`, `hackernews`) and provide params.
    - Streaming responses are available via WebSocket.
 
+## Quick Demo
+![Usage Demo](docs/media/usage.gif)
+This GIF shows: starting the stack, uploading a doc, and running chat with RAG.
+
 ## API Overview
 - Documents
   - `POST /api/documents/upload` — Upload and index a document
@@ -186,6 +190,21 @@ docker compose -f docker-compose.local.yml up -d
 Routes:
 - `http://localhost/` → frontend (Nginx)
 - `http://localhost/api/...` → backend (FastAPI)
+
+## Demo Options
+- Build locally and run:
+  - `cd docker && docker compose up -d`
+  - Frontend: `http://127.0.0.1:3000`, Backend API: `http://127.0.0.1:8000`
+- Pull prebuilt images from GHCR (requires public images or `docker login ghcr.io`):
+  - `cd deploy && docker compose -f docker-compose.ghcr.yml up -d`
+  - Frontend: `http://localhost:3000`, Backend proxied via Nginx
+- Traefik local proxy with GHCR images (HTTP only):
+  - `cd deploy/traefik && docker compose -f docker-compose.local.yml up -d`
+  - App: `http://localhost`, API: `http://localhost/api`
+- Traefik local proxy using locally built images (no registry):
+  - Build local images via `docker/docker-compose.yml`
+  - `cd deploy/traefik && docker compose -f docker-compose.local-built.yml up -d`
+  - App: `http://localhost`, API: `http://localhost/api`
 
 ## Configuration Guide
 Backend (`backend/.env`):
@@ -254,5 +273,3 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-## License
-Add your preferred license (MIT/Apache-2.0) before publishing.
