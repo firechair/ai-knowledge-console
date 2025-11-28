@@ -1,0 +1,10 @@
+from fastapi.testclient import TestClient
+from app import app
+
+client = TestClient(app)
+
+def test_health_endpoint():
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json().get("status") == "healthy"
+

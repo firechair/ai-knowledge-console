@@ -23,6 +23,9 @@ class VectorStoreService:
         
         # Load embedding model
         self.embedding_model = SentenceTransformer(settings.embedding_model)
+
+    def reload_embedding_model(self, model_name: str):
+        self.embedding_model = SentenceTransformer(model_name)
     
     def add_documents(self, chunks: List[str], metadata: List[Dict]) -> int:
         """Add document chunks to vector store"""

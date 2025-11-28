@@ -135,6 +135,10 @@ async def _fetch_tool_data(tools: List[str], params: dict) -> dict:
                 data["weather"] = await api_tools.get_weather(city)
             elif tool == "hackernews":
                 data["hackernews"] = await api_tools.get_hacker_news_top()
+            elif tool == "drive":
+                data["drive"] = {"error": "Drive connector requires configuration"}
+            elif tool == "slack":
+                data["slack"] = {"error": "Slack connector requires configuration"}
         except Exception as e:
             data[tool] = {"error": str(e)}
     

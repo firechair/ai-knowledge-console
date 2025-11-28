@@ -33,6 +33,8 @@ jobs:
           context: .
           file: docker/backend.Dockerfile
           push: true
+          cache-from: type=registry,ref=ghcr.io/firechair/ai-knowledge-console/backend:cache
+          cache-to: type=registry,ref=ghcr.io/firechair/ai-knowledge-console/backend:cache,mode=max
           tags: |
             ghcr.io/firechair/ai-knowledge-console/backend:latest
           platforms: linux/amd64,linux/arm64
@@ -43,7 +45,8 @@ jobs:
           context: .
           file: docker/frontend.Dockerfile
           push: true
+          cache-from: type=registry,ref=ghcr.io/firechair/ai-knowledge-console/frontend:cache
+          cache-to: type=registry,ref=ghcr.io/firechair/ai-knowledge-console/frontend:cache,mode=max
           tags: |
             ghcr.io/firechair/ai-knowledge-console/frontend:latest
           platforms: linux/amd64,linux/arm64
-

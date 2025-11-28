@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # API Keys (loaded from .env)
     github_token: str = ""
     openweather_api_key: str = ""
+    allowed_origins: str = "http://localhost:5173,http://localhost:3000"
+    max_upload_mb: int = 25
+    rate_limit_enabled: bool = False
+    rate_limit_requests: int = 100
+    rate_limit_window_sec: int = 60
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

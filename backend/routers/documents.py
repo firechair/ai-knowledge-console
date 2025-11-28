@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request
+from config import get_settings
 from typing import List
 
 from services.document_processor import DocumentProcessor
@@ -20,8 +21,17 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
         )
     
     try:
-        # Read file content
+        cfg = get_settings()
+        if file.content_type not in [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "text/plain",
+        ]:
+            raise HTTPException(status_code=400, detail="Unsupported MIME type")
         content = await file.read()
+        max_bytes = cfg.max_upload_mb * 1024 * 1024
+        if len(content) > max_bytes:
+            raise HTTPException(status_code=413, detail="File too large")
         
         # Extract text
         text = processor.extract_text(content, file.filename)

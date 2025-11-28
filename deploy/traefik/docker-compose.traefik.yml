@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.email=${TRAEFIK_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme/acme.json:/letsencrypt/acme.json
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/firechair/ai-knowledge-console/backend:latest
+    container_name: ai-console-backend
+    env_file:
+      - ../../backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls.certresolver=le
+      - traefik.http.services.backend.loadbalancer.server.port=8000
+      # HTTP → HTTPS redirect for backend endpoints
+      - traefik.http.routers.backend-web.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend-web.entrypoints=web
+      - traefik.http.routers.backend-web.middlewares=redirect-to-https
+    depends_on:
+      - traefik
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/firechair/ai-knowledge-console/frontend:latest
+    container_name: ai-console-frontend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=Host(`${TRAEFIK_DOMAIN}`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=le
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+      # HTTP → HTTPS redirect for frontend
+      - traefik.http.routers.frontend-web.rule=Host(`${TRAEFIK_DOMAIN}`)
+      - traefik.http.routers.frontend-web.entrypoints=web
+      - traefik.http.routers.frontend-web.middlewares=redirect-to-https
+    depends_on:
+      - backend
+      - traefik
+    restart: unless-stopped
+
