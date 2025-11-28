@@ -129,20 +129,6 @@ cp backend/.env.example backend/.env
 ![Usage Demo](docs/media/usage.gif)
 This GIF shows: starting the stack, uploading a doc, and running chat with RAG.
 
-### Update the Demo GIF
-- Requirements: Python, `playwright`, `pillow`
-- Install:
-  - `python3 -m venv .gifenv && source .gifenv/bin/activate`
-  - `python -m pip install --upgrade pip`
-  - `python -m pip install pillow playwright`
-  - `python -m playwright install chromium`
-- Record and generate:
-  - Traefik local proxy: `DEMO_BASE_URL=http://localhost python scripts/record_demo.py`
-  - Direct compose: `DEMO_BASE_URL=http://127.0.0.1:3000 python scripts/record_demo.py`
-- Fallback generator (static slides):
-  - `python scripts/make_usage_gif.py`
-- Output: `docs/media/usage.gif`
-
 ## API Overview
 - Documents
   - `POST /api/documents/upload` — Upload and index a document
