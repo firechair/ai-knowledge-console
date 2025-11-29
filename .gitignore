@@ -20,3 +20,5 @@ frontend/dist/
 vectorstore/
 *.sqlite3
 
+.env
+.env.local
