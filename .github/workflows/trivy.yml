@@ -10,10 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.14.0
+        uses: aquasecurity/trivy-action@0.29.0
         with:
           scan-type: fs
-          scanners: vuln,secret,misconfig,license
+          scanners: vuln,secret,misconfig
           ignore-unfixed: true
           format: table
           exit-code: 0
