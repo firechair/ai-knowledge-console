@@ -8,11 +8,11 @@ The application follows a **microservices-lite** architecture, containerized wit
 
 ```mermaid
 graph TD
-    Client[Frontend (React)] <-->|REST/WebSocket| Nginx[Nginx Proxy]
-    Nginx <-->|/api| Backend[Backend (FastAPI)]
-    Backend <-->|Embeddings| Chroma[ChromaDB (Vector Store)]
-    Backend <-->|Inference| LLM[LLM Server (llama.cpp)]
-    Backend <-->|OAuth| External[External APIs (Google/Slack)]
+    Client[Frontend React] <-->|"REST/WebSocket"| Nginx[Nginx Proxy]
+    Nginx <-->|"/api"| Backend[Backend FastAPI]
+    Backend <-->|Embeddings| Chroma[ChromaDB Vector Store]
+    Backend <-->|Inference| LLM[LLM Server llama.cpp]
+    Backend <-->|OAuth| External[External APIs Google/Slack]
 ```
 
 ### Components
