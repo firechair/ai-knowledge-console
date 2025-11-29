@@ -4,6 +4,7 @@
 
 ## 📚 Documentation
 
+- **[License](LICENSE)** - GPL v3.0 with Non-Commercial clause
 - **[System Architecture](docs/ARCHITECTURE.md)** - Technical design, Docker optimization, and GPU setup guide
 - **[OAuth Setup Guide](docs/OAUTH_SETUP.md)** - Detailed instructions for Gmail, Drive, Slack, and Notion integration
 
