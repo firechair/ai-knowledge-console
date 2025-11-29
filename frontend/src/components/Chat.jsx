@@ -7,16 +7,17 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [useDocuments, setUseDocuments] = useState(true);
+  const [conversationId, setConversationId] = useState(null);
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
 
   useEffect(() => {
     // Initialize WebSocket
     wsRef.current = createChatSocket();
-    
+
     wsRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      
+
       if (data.type === 'start') {
         setMessages(prev => [...prev, { role: 'assistant', content: '', sources: [] }]);
       } else if (data.type === 'token') {
@@ -32,6 +33,10 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
           return updated;
         });
         setIsLoading(false);
+        // Update conversation ID from server
+        if (data.conversation_id) {
+          setConversationId(data.conversation_id);
+        }
       } else if (data.type === 'api_data') {
         // Could display API data in UI
         console.log('API Data:', data.data);
@@ -66,7 +71,8 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
         message: input,
         use_documents: useDocuments,
         tools: enabledTools,
-        tool_params: toolParams
+        tool_params: toolParams,
+        conversation_id: conversationId
       }));
     }
 
@@ -83,18 +89,17 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
             <p className="text-sm mt-2">I can search your documents and fetch live data</p>
           </div>
         )}
-        
+
         {messages.map((msg, idx) => (
           <div
             key={idx}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg p-4 ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-gray-200'
-              }`}
+              className={`max-w-[80%] rounded-lg p-4 ${msg.role === 'user'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white border border-gray-200'
+                }`}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
               {msg.sources?.length > 0 && (
@@ -108,7 +113,7 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
             </div>
           </div>
         ))}
-        
+
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -116,14 +121,14 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}
       <div className="border-t border-gray-200 p-4 bg-white">
-        <div className="flex items-center gap-2 mb-2">
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="mb-4 flex items-center justify-between">
+          <label className="flex items-center space-x-2 text-sm text-gray-600">
             <input
               type="checkbox"
               checked={useDocuments}
@@ -131,16 +136,21 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
               className="rounded"
             />
             <FileText size={16} />
-            Search documents
+            <span>Use documents</span>
           </label>
-          {enabledTools.length > 0 && (
-            <span className="flex items-center gap-1 text-sm text-green-600">
-              <Globe size={16} />
-              {enabledTools.length} tools active
-            </span>
+          {conversationId && (
+            <button
+              onClick={() => {
+                setConversationId(null);
+                setMessages([]);
+              }}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              + New Conversation
+            </button>
           )}
         </div>
-        
+
         <div className="flex gap-2">
           <input
             type="text"
