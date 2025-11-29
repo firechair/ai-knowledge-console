@@ -43,6 +43,8 @@ See [Configuration](#optional-enhancements) below to enable optional features.
 This GIF shows: starting the stack, uploading a doc, and running chat with RAG.
 
 ## Architecture
+> 📖 **Deep Dive**: See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for detailed design decisions and GPU setup guides.
+
 - Backend (`/backend`): FastAPI app (`app.py`), served by Gunicorn with Uvicorn workers.
 - Embeddings: `SentenceTransformer` model (`all-MiniLM-L6-v2`).
 - Vector DB: ChromaDB persistent client (`/vectorstore/chroma`).
