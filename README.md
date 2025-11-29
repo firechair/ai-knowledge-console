@@ -2,6 +2,11 @@
 
 [![License: GPL v3 + Non-Commercial](https://img.shields.io/badge/License-GPL%20v3%20%2B%20Non--Commercial-blue.svg)](LICENSE)
 
+## 📚 Documentation
+
+- **[System Architecture](docs/ARCHITECTURE.md)** - Technical design, Docker optimization, and GPU setup guide
+- **[OAuth Setup Guide](docs/OAUTH_SETUP.md)** - Detailed instructions for Gmail, Drive, Slack, and Notion integration
+
 
 An end-to-end Retrieval-Augmented Generation (RAG) web application. Upload your documents (PDF, DOCX, TXT), index them into a vector store (ChromaDB) with `SentenceTransformers`, and chat with a local LLM (llama.cpp) enriched by relevant document context and optional external tools (GitHub, Crypto, Weather, Hacker News, Gmail, Drive, Slack, Notion).
 
