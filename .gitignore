@@ -19,6 +19,9 @@ frontend/dist/
 # Data / local artifacts
 vectorstore/
 *.sqlite3
+*.db
+conversations.db
 
 .env
 .env.local
+

@@ -65,25 +65,44 @@ class LLMService:
         self,
         query: str,
         context_chunks: List[Dict],
-        api_data: Optional[Dict] = None
+        api_data: Optional[Dict] = None,
+        conversation_history: Optional[List[Dict]] = None,
     ) -> str:
-        """Build a RAG prompt with context and optional API data"""
-        context_text = "\n\n".join([
-            f"[Source: {c['metadata'].get('filename', 'unknown')}]\n{c['content']}"
-            for c in context_chunks
-        ])
-        
-        prompt_parts = [f"Question: {query}\n"]
-        
+        """Build a RAG prompt with context, optional API data, and conversation history"""
+        prompt_parts = []
+
+        # Add conversation history if available
+        if conversation_history:
+            history_text = "\n".join(
+                [
+                    f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
+                    for msg in conversation_history[-6:]  # Last 6 messages (3 turns)
+                ]
+            )
+            prompt_parts.append(f"Conversation History:\n{history_text}\n")
+
+        # Add current question
+        prompt_parts.append(f"Current Question: {query}\n")
+
+        # Add document context
+        context_text = "\n\n".join(
+            [
+                f"[Source: {c['metadata'].get('filename', 'unknown')}]\n{c['content']}"
+                for c in context_chunks
+            ]
+        )
+
         if context_text:
             prompt_parts.append(f"Document Context:\n{context_text}\n")
-        
+
+        # Add API data
         if api_data:
             prompt_parts.append(f"External Data:\n{json.dumps(api_data, indent=2)}\n")
-        
+
         prompt_parts.append(
-            "Based on the above context and data, provide a comprehensive answer. "
+            "Based on the above context, data, and conversation history, provide a comprehensive answer. "
             "If the information is not in the context, say so clearly."
         )
-        
+
         return "\n".join(prompt_parts)
+

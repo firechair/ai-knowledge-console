@@ -5,116 +5,143 @@ import json
 
 from services.llm_service import LLMService
 from services.api_tools import APIToolsService
+from services.conversation_service import ConversationService
 
 router = APIRouter()
 llm_service = LLMService()
 api_tools = APIToolsService()
+conversation_service = ConversationService()
+
 
 class ChatRequest(BaseModel):
     message: str
     use_documents: bool = True
     tools: Optional[List[str]] = None  # e.g., ["github", "crypto", "weather"]
     tool_params: Optional[dict] = None
+    conversation_id: Optional[str] = None  # Track conversation for history
 
 @router.post("/query")
 async def chat_query(request: Request, chat_request: ChatRequest):
     """Non-streaming chat endpoint"""
     vector_store = request.app.state.vector_store
-    
+
+    # Get or create conversation ID
+    conv_id = chat_request.conversation_id or conversation_service.create_conversation()
+
+    # Retrieve conversation history
+    history = conversation_service.get_history(conv_id, limit=10)
+
+    # Save user message
+    conversation_service.add_message(conv_id, "user", chat_request.message)
+
     # Retrieve relevant context
     context_chunks = []
     if chat_request.use_documents:
         context_chunks = vector_store.search(chat_request.message, n_results=5)
-    
+
     # Fetch external API data if requested
     api_data = {}
     if chat_request.tools:
         api_data = await _fetch_tool_data(chat_request.tools, chat_request.tool_params or {})
-    
-    # Build RAG prompt
+
+    # Build RAG prompt with history
     prompt = llm_service.build_rag_prompt(
-        chat_request.message,
-        context_chunks,
-        api_data if api_data else None
+        chat_request.message, context_chunks, api_data if api_data else None, history
     )
-    
+
     # Generate response
     system_prompt = (
         "You are an AI assistant with access to documents and external data. "
         "Provide accurate, helpful answers based on the context provided."
     )
-    
+
     response = await llm_service.generate(prompt, system_prompt)
-    
+
+    # Save assistant response
+    conversation_service.add_message(conv_id, "assistant", response)
+
     return {
         "response": response,
         "sources": [c["metadata"]["filename"] for c in context_chunks],
-        "api_data_used": list(api_data.keys()) if api_data else []
+        "api_data_used": list(api_data.keys()) if api_data else [],
+        "conversation_id": conv_id,
     }
 
 @router.websocket("/ws")
 async def websocket_chat(websocket: WebSocket, request: Request = None):
     """WebSocket endpoint for streaming chat"""
     await websocket.accept()
-    
+
     # Get vector store from app state
     # Note: In WebSocket, we need to access it differently
     from services.vector_store import VectorStoreService
+
     vector_store = VectorStoreService()
-    
+
     try:
         while True:
             # Receive message
             data = await websocket.receive_text()
             message_data = json.loads(data)
-            
+
             user_message = message_data.get("message", "")
             use_documents = message_data.get("use_documents", True)
             tools = message_data.get("tools", [])
             tool_params = message_data.get("tool_params", {})
-            
+            conv_id = message_data.get("conversation_id")
+
+            # Get or create conversation
+            if not conv_id:
+                conv_id = conversation_service.create_conversation()
+
+            # Get conversation history
+            history = conversation_service.get_history(conv_id, limit=10)
+
+            # Save user message
+            conversation_service.add_message(conv_id, "user", user_message)
+
             # Retrieve context
             context_chunks = []
             if use_documents:
                 context_chunks = vector_store.search(user_message, n_results=5)
-            
+
             # Fetch API data
             api_data = {}
             if tools:
                 api_data = await _fetch_tool_data(tools, tool_params)
                 # Send API data first
-                await websocket.send_json({
-                    "type": "api_data",
-                    "data": api_data
-                })
-            
-            # Build prompt
+                await websocket.send_json({"type": "api_data", "data": api_data})
+
+            # Build prompt with history
             prompt = llm_service.build_rag_prompt(
-                user_message,
-                context_chunks,
-                api_data if api_data else None
+                user_message, context_chunks, api_data if api_data else None, history
             )
-            
+
             system_prompt = (
                 "You are an AI assistant with access to documents and external data. "
                 "Provide accurate, helpful answers based on the context provided."
             )
-            
+
             # Stream response
             await websocket.send_json({"type": "start"})
-            
+
+            full_response = ""
             async for token in llm_service.generate_stream(prompt, system_prompt):
-                await websocket.send_json({
-                    "type": "token",
-                    "content": token
-                })
-            
-            # Send completion signal with sources
-            await websocket.send_json({
-                "type": "end",
-                "sources": [c["metadata"]["filename"] for c in context_chunks]
-            })
-            
+                full_response += token
+                await websocket.send_json({"type": "token", "content": token})
+
+            # Save assistant response
+            conversation_service.add_message(conv_id, "assistant", full_response)
+
+            # Send completion signal with sources and conversation ID
+            await websocket.send_json(
+                {
+                    "type": "end",
+                    "sources": [c["metadata"]["filename"] for c in context_chunks],
+                    "conversation_id": conv_id,
+                }
+            )
+
     except WebSocketDisconnect:
         print("Client disconnected")
 

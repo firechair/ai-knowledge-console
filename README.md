@@ -7,6 +7,7 @@
 - **[License](LICENSE)** - GPL v3.0 with Non-Commercial clause
 - **[System Architecture](docs/ARCHITECTURE.md)** - Technical design, Docker optimization, and GPU setup guide
 - **[OAuth Setup Guide](docs/OAUTH_SETUP.md)** - Detailed instructions for Gmail, Drive, Slack, and Notion integration
+- **[Usage Guide](docs/USAGE_GUIDE.md)** - Practical scenarios and examples for different use cases
 
 
 An end-to-end Retrieval-Augmented Generation (RAG) web application. Upload your documents (PDF, DOCX, TXT), index them into a vector store (ChromaDB) with `SentenceTransformers`, and chat with a local LLM (llama.cpp) enriched by relevant document context and optional external tools (GitHub, Crypto, Weather, Hacker News, Gmail, Drive, Slack, Notion).
@@ -37,11 +38,11 @@ See [Configuration](#optional-enhancements) below to enable optional features.
 - Document upload: PDF, DOCX, TXT
 - Chunking + ChromaDB persistent vector store
 - RAG chat: REST and WebSocket streaming
-- Conversation memory: tracks chat history for context-aware follow-up questions
+- **Conversation memory**: AI remembers context from previous messages in a conversation
 - External tools (optional): GitHub commits, crypto prices, weather, Hacker News
 - OAuth integrations (optional): Gmail, Google Drive, Slack, Notion
 - Production Docker: multi-stage builds, healthchecks, non-root user
-- CI/CD: GitHub Actions building and pushing Docker images to GHCR
+- CI/CD: GitHub Actions building and testing Docker images
 
 ## Quick Demo
 ![Usage Demo](docs/media/usage.gif)
