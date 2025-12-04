@@ -32,3 +32,26 @@ conversations.db
 # Test coverage
 .coverage
 htmlcov/
+
+# Pytest cache
+.pytest_cache/
+**/.pytest_cache/
+
+# Python cache and temp files
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
