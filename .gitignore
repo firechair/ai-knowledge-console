@@ -25,3 +25,6 @@ conversations.db
 .env
 .env.local
 
+# AI Assistant artifacts
+.gemini/
+.claude/
