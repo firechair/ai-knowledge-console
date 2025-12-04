@@ -37,6 +37,23 @@ class ConversationService:
                 )
             """
             )
+            
+            # Add indexes for performance
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
+                ON messages(conversation_id)
+            """)
+            
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_messages_created_at
+                ON messages(created_at)
+            """)
+            
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_conversations_created_at
+                ON conversations(created_at)
+            """)
+            
             conn.commit()
 
     def create_conversation(self) -> str:
@@ -102,3 +119,84 @@ class ConversationService:
                 "SELECT 1 FROM conversations WHERE id = ? LIMIT 1", (conversation_id,)
             )
             return cursor.fetchone() is not None
+
+    def search_conversations(self, query: str, limit: int = 20) -> List[Dict]:
+        """
+        Search conversations by message content.
+        
+        Args:
+            query: Search term to find in message content
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of conversations with matching content, including preview
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                """
+                SELECT DISTINCT
+                    c.id,
+                    c.created_at,
+                    m.content as preview
+                FROM conversations c
+                JOIN messages m ON c.id = m.conversation_id
+                WHERE m.content LIKE ?
+                ORDER BY c.created_at DESC
+                LIMIT ?
+            """,
+                (f"%{query}%", limit),
+            )
+
+            results = []
+            for row in cursor.fetchall():
+                preview = row[2]
+                results.append({
+                    "id": row[0],
+                    "created_at": row[1],
+                    "preview": preview[:100] if preview else "New Conversation",  # First 100 chars
+                    "title": preview[:50] if preview else "New Conversation"  # First 50 chars for title
+                })
+
+            return results
+
+    def list_conversations(self, limit: int = 50) -> List[Dict]:
+        """
+        List all conversations with preview from first user message.
+        
+        Args:
+            limit: Maximum number of conversations to return
+            
+        Returns:
+            List of conversations ordered by creation date (newest first)
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                """
+                SELECT
+                    c.id,
+                    c.created_at,
+                    (SELECT content FROM messages
+                     WHERE conversation_id = c.id
+                     AND role = 'user'
+                     ORDER BY created_at ASC
+                     LIMIT 1) as first_message
+                FROM conversations c
+                ORDER BY c.created_at DESC
+                LIMIT ?
+            """,
+                (limit,),
+            )
+
+            results = []
+            for row in cursor.fetchall():
+                first_msg = row[2]
+                results.append({
+                    "id": row[0],
+                    "created_at": row[1],
+                    "title": first_msg[:50] if first_msg else "New Conversation",
+                    "preview": first_msg[:100] if first_msg else "New Conversation"
+                })
+
+            return results

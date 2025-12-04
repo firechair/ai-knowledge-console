@@ -1,16 +1,22 @@
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { setEmbeddingModel } from '../utils/api';
 
 export default function Settings() {
   const [modelName, setModelName] = useState('all-MiniLM-L6-v2');
   const [status, setStatus] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const updateModel = async () => {
+    setLoading(true);
+    setStatus('');
     try {
       await setEmbeddingModel(modelName);
       setStatus(`Embedding model set to ${modelName}`);
     } catch (e) {
       setStatus(`Error: ${e?.response?.data?.detail || e.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 

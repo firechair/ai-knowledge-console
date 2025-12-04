@@ -3,6 +3,7 @@
 This guide demonstrates practical use cases and scenarios for the AI Knowledge Console, showing you how to leverage different features for various needs.
 
 ## Table of Contents
+- [New Features Guide](#new-features-guide)
 - [Core RAG Usage](#core-rag-usage)
 - [External API Tools](#external-api-tools)
 - [OAuth-Integrated Services](#oauth-integrated-services)
@@ -10,6 +11,141 @@ This guide demonstrates practical use cases and scenarios for the AI Knowledge C
 - [Best Practices](#best-practices)
 
 ---
+
+## New Features Guide
+
+Learn how to use the latest productivity enhancements added to the AI Knowledge Console.
+
+### Conversation Management
+
+**Search Your Conversation History**
+
+All your past conversations are automatically saved and searchable.
+
+**How to use**:
+1. Go to the Chat tab
+2. Look for the conversation list on the left side
+3. Use the search box to find conversations by content
+4. Click any conversation to load its full history
+
+**Example Workflow**:
+```
+Scenario: You remember discussing Python best practices last week,
+          but can't remember the specifics.
+
+Step 1: Type "Python best practices" in the conversation search
+Step 2: See list of matching conversations with previews
+Step 3: Click the relevant conversation to reload it
+Step 4: Continue where you left off!
+```
+
+**Key Features**:
+- **Real-time search**: Results update as you type
+- **Content-based**: Searches through all messages, not just titles
+- **Auto-refresh**: List updates every 30 seconds with new conversations
+- **Preview**: See conversation titles and first message preview
+
+### Document Preview
+
+**Preview Files Before Uploading**
+
+Verify file contents before processing to avoid mistakes.
+
+**How to use**:
+1. Go to the Documents tab
+2. Click "Choose File" or drag-and-drop
+3. Preview appears automatically
+4. Review the content:
+   - **Text files (.txt)**: First 500 characters shown
+   - **PDF files**: filename and size displayed
+   - **Word files (.docx)**: filename and size displayed
+5. Click "Confirm Upload" to proceed or "Cancel" to choose another file
+
+**Example Workflow**:
+```
+Scenario: You have multiple versions of a contract and want to
+          upload the latest one.
+
+Step 1: Select what you think is the latest file
+Step 2: Preview shows: "This contract dated January 2024..."
+Step 3: Realize it's the old version
+Step 4: Click "Cancel"
+Step 5: Select the correct file instead
+Step 6: Preview confirms: "This contract dated November 2024..."
+Step 7: Click "Confirm Upload" to proceed
+```
+
+**Benefits**:
+- Prevent uploading wrong files
+- Verify text extraction quality for PDFs
+- Catch file corruption early
+- Confirm file contents match expectations
+
+### Keyboard Shortcuts
+
+**Navigate Faster with Keyboard**
+
+Use keyboard shortcuts for efficient navigation without touching the mouse.
+
+**Available Shortcuts**:
+
+| Shortcut | Action | Use Case |
+|----------|--------|----------|
+| `Cmd/Ctrl + 1` | Go to Chat tab | Quick return to conversation |
+| `Cmd/Ctrl + 2` | Go to Documents tab | Upload files quickly |
+| `Cmd/Ctrl + 3` | Go to Connectors tab | Configure integrations |
+| `Cmd/Ctrl + 4` | Go to Settings tab | Adjust preferences |
+| `Escape` | Clear conversation selection | Start fresh chat |
+
+**Example Workflow**:
+```
+Typical Power User Flow:
+1. Cmd+2 - Jump to Documents
+2. Upload a new file
+3. Cmd+1 - Jump back to Chat
+4. Ask questions about the new document
+5. Cmd+3 - Check a connector status
+6. Cmd+1 - Return to chat
+7. Escape - Start new conversation
+```
+
+**Accessibility**: All keyboard shortcuts also work for screen reader users and keyboard-only navigation.
+
+###Conversation Context Tips
+
+**Making the Most of Conversation Memory**
+
+The AI remembers your entire conversation history within a session.
+
+**Best Practices**:
+
+**Do**:
+- Use "+ New Conversation" when switching topics completely
+- Keep related questions in the same conversation
+- Reference previous answers: "Based on what you just said about X..."
+
+**Don't**:
+- Mix unrelated topics in one conversation
+- Forget to start new conversations for new documents
+
+**Example - Good Conversation Flow**:
+```
+Conversation 1 (Project Alpha):
+You: "What are the requirements for Project Alpha?"
+AI: [Lists requirements from docs]
+You: "What's the timeline?" ← AI knows you mean Project Alpha
+AI: [Provides timeline]
+You: "Any risks?" ← Still contextually aware
+AI: [Lists risks]
+
+[Start new conversation for different topic]
+
+Conversation 2 (Budget Analysis):
+You: "Show me the Q4 budget breakdown"
+AI: [Fresh context, focused on budget]
+```
+
+
 
 ## Core RAG Usage
 
