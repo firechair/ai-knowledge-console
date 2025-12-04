@@ -28,3 +28,7 @@ conversations.db
 # AI Assistant artifacts
 .gemini/
 .claude/
+
+# Test coverage
+.coverage
+htmlcov/
