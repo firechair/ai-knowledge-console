@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Github, Cloud, Bitcoin, Newspaper, Check, X, Settings } from 'lucide-react';
 import { listConnectors, configureConnector, toggleConnector } from '../utils/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -45,9 +45,9 @@ export default function Connectors({ onToolsChange }) {
         .filter(([_, v]) => v.enabled && v.configured)
         .map(([k]) => k)
     : [];
-  
+
   // Call parent callback when tools change
-  useState(() => {
+  useEffect(() => {
     onToolsChange?.(enabledTools);
   }, [enabledTools, onToolsChange]);
 

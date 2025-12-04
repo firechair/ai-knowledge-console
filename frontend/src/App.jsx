@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MessageSquare, FileText, Plug, Settings as SettingsIcon } from 'lucide-react';
 import Chat from './components/Chat';
 import DocumentUpload from './components/DocumentUpload';
 import Connectors from './components/Connectors';
 import Settings from './components/Settings';
+import ErrorBoundary from './components/ErrorBoundary';
+import ConversationList from './components/ConversationList';
 
 const queryClient = new QueryClient();
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('chat');
   const [enabledTools, setEnabledTools] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [toolParams, setToolParams] = useState({
     github_repo: 'facebook/react',
     crypto_symbol: 'bitcoin',
@@ -18,11 +21,33 @@ function AppContent() {
   });
 
   const tabs = [
-    { id: 'chat', label: 'Chat', icon: MessageSquare },
-    { id: 'documents', label: 'Documents', icon: FileText },
-    { id: 'connectors', label: 'Connectors', icon: Plug },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon }
+    { id: 'chat', label: 'Chat', icon: MessageSquare, shortcut: '⌘1' },
+    { id: 'documents', label: 'Documents', icon: FileText, shortcut: '⌘2' },
+    { id: 'connectors', label: 'Connectors', icon: Plug, shortcut: '⌘3' },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon, shortcut: '⌘4' }
   ];
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Tab navigation: Cmd/Ctrl + 1-4
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= 4) {
+          e.preventDefault();
+          setActiveTab(tabs[num - 1].id);
+        }
+      }
+
+      // Escape: Clear selections
+      if (e.key === 'Escape') {
+        setSelectedConversation(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -39,22 +64,27 @@ function AppContent() {
       {/* Main content */}
       <div className="flex-1 flex">
         {/* Sidebar */}
-        <nav className="w-64 bg-white border-r border-gray-200 p-4">
-          <ul className="space-y-2">
+        <nav className="w-64 bg-white border-r border-gray-200 p-4" role="navigation" aria-label="Main navigation">
+          <ul className="space-y-2" role="menubar">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <li key={tab.id}>
+                <li key={tab.id} role="none">
                   <button
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                    role="menuitem"
+                    aria-label={`${tab.label} (${tab.shortcut})`}
+                    aria-current={activeTab === tab.id ? 'page' : undefined}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${activeTab === tab.id
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                      }`}
                   >
-                    <Icon size={20} />
-                    {tab.label}
+                    <span className="flex items-center gap-3">
+                      <Icon size={20} />
+                      {tab.label}
+                    </span>
+                    <span className="text-xs text-gray-400">{tab.shortcut}</span>
                   </button>
                 </li>
               );
@@ -97,9 +127,21 @@ function AppContent() {
         </nav>
 
         {/* Content area */}
-        <main className="flex-1 bg-gray-50">
+        <main className="flex-1 bg-gray-50 flex" role="main">
           {activeTab === 'chat' && (
-            <Chat enabledTools={enabledTools} toolParams={toolParams} />
+            <>
+              <ConversationList
+                onSelectConversation={setSelectedConversation}
+                selectedId={selectedConversation}
+              />
+              <div className="flex-1">
+                <Chat
+                  enabledTools={enabledTools}
+                  toolParams={toolParams}
+                  conversationId={selectedConversation}
+                />
+              </div>
+            </>
           )}
           {activeTab === 'documents' && <DocumentUpload />}
           {activeTab === 'connectors' && (
@@ -114,8 +156,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppContent />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

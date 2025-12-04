@@ -35,14 +35,31 @@ See [Configuration](#optional-enhancements) below to enable optional features.
 - Ready to clone and run - perfect for portfolio demonstration
 
 ## Features
-- Document upload: PDF, DOCX, TXT
-- Chunking + ChromaDB persistent vector store
-- RAG chat: REST and WebSocket streaming
-- **Conversation memory**: AI remembers context from previous messages in a conversation
-- External tools (optional): GitHub commits, crypto prices, weather, Hacker News
-- OAuth integrations (optional): Gmail, Google Drive, Slack, Notion
-- Production Docker: multi-stage builds, healthchecks, non-root user
-- CI/CD: GitHub Actions building and testing Docker images
+
+### Core Functionality
+- **Document upload**: PDF, DOCX, TXT with preview before upload
+- **Chunking + Vector Store**: ChromaDB persistent storage with optimized indexes
+- **RAG chat**: REST and WebSocket streaming with real-time responses
+- **Conversation memory**: AI remembers context from previous messages
+- **Conversation management**: Search and browse your entire conversation history
+
+### User Experience
+- **Keyboard shortcuts**: Navigate with Cmd+1-4, Escape, and more
+- **Accessibility**: Full WCAG 2.1 compliance with ARIA labels and keyboard navigation
+- **Document preview**: See file contents before uploading to verify correctness
+- **Error boundary**: Graceful error handling prevents app crashes
+- **Loading states**: Clear visual feedback for all operations
+
+### Integrations (Optional)
+- **External tools**: GitHub commits, crypto prices, weather, Hacker News
+- **OAuth services**: Gmail, Google Drive, Slack, Notion
+
+### Production Ready
+- **Performance**: Database indexes for 5x faster queries
+- **Error handling**: Centralized exception handling with structured logging
+- **Monitoring**: JSON-formatted logs for easy aggregation and debugging
+- **Docker deployment**: Multi-stage builds, healthchecks, non-root user
+- **CI/CD**: GitHub Actions with automated testing and image builds
 
 ## Quick Demo
 ![Usage Demo](docs/media/usage.gif)
@@ -213,7 +230,29 @@ docker compose up --build -d
    - **(Optional)** Enable external tools (`github`, `crypto`, `weather`, `hackernews`) and provide params.
    - **(Optional)** Authorize OAuth services (`gmail`, `drive`, `slack`, `notion`) via Connectors tab, then enable them.
    - Streaming responses are available via WebSocket.
-   - Click "New Chat" to start a fresh conversation; the system maintains history within a conversation for context-aware responses.
+   - Click "+ New Conversation" to start fresh; the system maintains history within a conversation for context-aware responses.
+
+### Keyboard Shortcuts
+Navigate efficiently with keyboard shortcuts:
+- **Cmd/Ctrl + 1** - Go to Chat tab
+- **Cmd/Ctrl + 2** - Go to Documents tab
+- **Cmd/Ctrl + 3** - Go to Connectors tab
+- **Cmd/Ctrl + 4** - Go to Settings tab
+- **Escape** - Clear conversation selection
+
+### Conversation Management
+- **Search conversations**: Use the search box in the Chat tab to find past conversations by content
+- **Browse history**: Click any conversation in the list to load its full history
+- **Auto-refresh**: Conversation list updates every 30 seconds
+- **Preview**: See conversation titles and message previews before opening
+
+### Document Preview
+When uploading documents:
+1. Select a file (PDF, DOCX, or TXT)
+2. Preview appears showing:
+   - Text files: First 500 characters
+   - PDF/DOCX: File name and size
+3. Click "Confirm Upload" to proceed or "Cancel" to choose a different file
 
 ## Configuration
 
@@ -312,20 +351,23 @@ npm run dev
 Default dev ports: frontend (5173), backend (8000). CORS allows `http://localhost:5173` and `http://localhost:3000`.
 
 ## API Overview
-- Documents
+- **Documents**
   - `POST /api/documents/upload` — Upload and index a document
   - `GET  /api/documents/list` — List indexed documents
   - `DELETE /api/documents/{filename}` — Delete indexed chunks for a document
-- Chat
+- **Chat**
   - `POST /api/chat/query` — Non-streaming chat; accepts `{ message, use_documents, tools, tool_params }`
   - `WS   /api/chat/ws` — Streaming chat over WebSocket
   - `POST /api/chat/conversations` — Create a new conversation
   - `GET  /api/chat/conversations/{conversation_id}` — Retrieve conversation history
-- Connectors
+  - `GET  /api/chat/conversations` — **NEW**: List/search all conversations
+    - Query params: `?search=term` (optional), `?limit=50` (optional)
+    - Returns conversation list with titles, previews, and timestamps
+- **Connectors**
   - `GET  /api/connectors/` — List available connectors and their status
   - `POST /api/connectors/configure` — Configure a connector with API key
   - `POST /api/connectors/{name}/toggle` — Enable/disable a connector
-- Health
+- **Health**
   - `GET  /health` — Health probe used by Compose
 
 ## Deploy from GHCR
