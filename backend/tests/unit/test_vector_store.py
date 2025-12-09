@@ -13,7 +13,7 @@ class TestVectorStoreService:
     """Test suite for VectorStoreService."""
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_init(self, mock_settings, mock_transformer, mock_chroma):
         """Test VectorStoreService initialization."""
@@ -33,7 +33,7 @@ class TestVectorStoreService:
         mock_transformer.assert_called_once_with("test-model")
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_add_documents(self, mock_settings, mock_transformer, mock_chroma):
         """Test adding documents to vector store."""
@@ -70,7 +70,7 @@ class TestVectorStoreService:
         assert len(call_args["embeddings"]) == 2
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_search(self, mock_settings, mock_transformer, mock_chroma):
         """Test searching for relevant documents."""
@@ -107,7 +107,7 @@ class TestVectorStoreService:
         mock_collection.query.assert_called_once()
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_delete_document(self, mock_settings, mock_transformer, mock_chroma):
         """Test deleting a document."""
@@ -125,7 +125,7 @@ class TestVectorStoreService:
         mock_collection.delete.assert_called_once_with(where={"filename": "test.txt"})
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_list_documents(self, mock_settings, mock_transformer, mock_chroma):
         """Test listing all documents."""
@@ -158,7 +158,7 @@ class TestVectorStoreService:
         mock_collection.get.assert_called_once_with(include=["metadatas"])
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_list_documents_empty(self, mock_settings, mock_transformer, mock_chroma):
         """Test listing documents when collection is empty."""
@@ -178,7 +178,7 @@ class TestVectorStoreService:
         assert documents == []
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_reload_embedding_model(self, mock_settings, mock_transformer, mock_chroma):
         """Test reloading embedding model."""
@@ -200,7 +200,7 @@ class TestVectorStoreService:
         mock_transformer.assert_called_with("new-model")
 
     @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
     def test_search_no_results(self, mock_settings, mock_transformer, mock_chroma):
         """Test search with no results."""

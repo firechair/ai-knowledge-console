@@ -34,8 +34,10 @@ export default function Settings() {
         />
         <button
           onClick={updateModel}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
         >
+          {loading && <Loader2 className="animate-spin" size={16} />}
           Apply
         </button>
         {status && (

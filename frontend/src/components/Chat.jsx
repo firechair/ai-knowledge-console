@@ -25,15 +25,17 @@ export default function Chat({ enabledTools = [], toolParams = {}, conversationI
   const reconnectTimerRef = useRef(null);
   const attemptsRef = useRef(0);
   const queueRef = useRef([]);
-  
 
-  
+
+
 
   useEffect(() => {
     try {
       const payload = JSON.stringify({ messages, conversationId, useDocuments });
       localStorage.setItem(STORAGE_KEY, payload);
-    } catch {}
+    } catch {
+      // Intentionally ignore localStorage errors
+    }
   }, [messages, conversationId, useDocuments]);
 
   useEffect(() => {
@@ -44,9 +46,12 @@ export default function Chat({ enabledTools = [], toolParams = {}, conversationI
         const msgs = (res.data?.messages || []).map(m => ({ role: m.role, content: m.content }));
         setConversationId(conversationIdProp);
         setMessages(msgs);
-      } catch {}
+      } catch {
+        // Intentionally ignore fetch errors - silent fail
+      }
     })();
-  }, [conversationIdProp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationIdProp]); // conversationId intentionally excluded to prevent loops
 
   const ensureSocket = () => {
     if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
@@ -63,10 +68,12 @@ export default function Chat({ enabledTools = [], toolParams = {}, conversationI
       const q = queueRef.current;
       queueRef.current = [];
       q.forEach(msg => {
-        try { socket.send(msg); } catch {}
+        try { socket.send(msg); } catch {
+          // Ignore send errors on reconnect
+        }
       });
     };
-    socket.onclose = (evt) => {
+    socket.onclose = () => {
       // Suppress noisy close logs in dev; schedule reconnect
       connectingRef.current = false;
       if (aliveRef.current) {
@@ -80,7 +87,7 @@ export default function Chat({ enabledTools = [], toolParams = {}, conversationI
         }, delay);
       }
     };
-    socket.onerror = (err) => {
+    socket.onerror = () => {
       // Suppress noisy error logs in dev; schedule reconnect
       connectingRef.current = false;
       if (aliveRef.current) {
@@ -143,13 +150,16 @@ export default function Chat({ enabledTools = [], toolParams = {}, conversationI
           ws.close(1000);
         }
         wsRef.current = null;
-      } catch {}
+      } catch {
+        // Ignore WebSocket close errors
+      }
       aliveRef.current = false;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
       }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ensureSocket intentionally excluded - only run once on mount
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -164,12 +174,12 @@ export default function Chat({ enabledTools = [], toolParams = {}, conversationI
 
     const sock = ensureSocket();
     const payload = JSON.stringify({
-        message: input,
-        use_documents: useDocuments,
-        tools: enabledTools,
-        tool_params: toolParams,
-        conversation_id: conversationId
-      });
+      message: input,
+      use_documents: useDocuments,
+      tools: enabledTools,
+      tool_params: toolParams,
+      conversation_id: conversationId
+    });
     if (sock?.readyState === WebSocket.OPEN) {
       sock.send(payload);
     } else {
@@ -244,7 +254,9 @@ export default function Chat({ enabledTools = [], toolParams = {}, conversationI
               onClick={() => {
                 setConversationId(null);
                 setMessages([]);
-                try { localStorage.removeItem(STORAGE_KEY); } catch {}
+                try { localStorage.removeItem(STORAGE_KEY); } catch {
+                  // Ignore localStorage errors
+                }
               }}
               className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >

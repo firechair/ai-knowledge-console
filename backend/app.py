@@ -10,6 +10,7 @@ from routers import documents, chat, connectors, settings, auth, conversations
 from services.vector_store import VectorStoreService
 from middleware.error_handler import register_exception_handlers
 from logging_config import setup_logging
+from config import get_settings
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -45,7 +46,6 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS for frontend
-from config import get_settings
 cfg = get_settings()
 origins = [o.strip() for o in cfg.allowed_origins.split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])

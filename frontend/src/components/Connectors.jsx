@@ -47,14 +47,16 @@ export default function Connectors({ onToolsChange }) {
   const enabledTools = useMemo(() => {
     if (!connectors) return [];
     return Object.entries(connectors)
-      .filter(([_, v]) => v.enabled && v.configured)
+      .filter(([, v]) => v.enabled && v.configured)
       .map(([k]) => k);
   }, [connectors]);
-  
+
   // Call parent callback when tools change
   useEffect(() => {
     onToolsChange?.(enabledTools);
-  }, [enabledTools]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledTools]); // onToolsChange assumed stable from parent
+
 
   return (
     <div className="p-6">
@@ -67,7 +69,7 @@ export default function Connectors({ onToolsChange }) {
         {connectors && Object.entries(connectors).map(([name, status]) => {
           const info = CONNECTOR_INFO[name];
           const Icon = info?.icon || Settings;
-          
+
           return (
             <div
               key={name}
@@ -89,7 +91,7 @@ export default function Connectors({ onToolsChange }) {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {info?.needsKey && (
                     <button
@@ -124,11 +126,10 @@ export default function Connectors({ onToolsChange }) {
                   )}
                   <button
                     onClick={() => toggleMutation.mutate(name)}
-                    className={`px-3 py-1 rounded-full text-sm ${
-                      status.enabled
+                    className={`px-3 py-1 rounded-full text-sm ${status.enabled
                         ? 'bg-green-100 text-green-700'
                         : 'bg-gray-100 text-gray-600'
-                    }`}
+                      }`}
                     disabled={!status.configured}
                   >
                     {status.enabled ? 'Enabled' : 'Disabled'}
