@@ -73,7 +73,7 @@ class TestAPIToolsService:
                 mock_client.get = AsyncMock(return_value=mock_response)
                 mock_client_class.return_value = mock_client
 
-                result = await service.github_search_commits("test/repo")
+                await service.github_search_commits("test/repo")
 
                 # Verify no authorization header
                 call_args = mock_client.get.call_args
@@ -101,7 +101,7 @@ class TestAPIToolsService:
     @pytest.mark.asyncio
     async def test_get_crypto_price_success(self):
         """Test successful cryptocurrency price retrieval."""
-        with patch('services.api_tools.get_settings') as mock_settings:
+        with patch('services.api_tools.get_settings'):
             service = APIToolsService()
 
             mock_response = Mock()
@@ -131,7 +131,7 @@ class TestAPIToolsService:
     @pytest.mark.asyncio
     async def test_get_crypto_price_not_found(self):
         """Test cryptocurrency not found."""
-        with patch('services.api_tools.get_settings') as mock_settings:
+        with patch('services.api_tools.get_settings'):
             service = APIToolsService()
 
             mock_response = Mock()
@@ -202,7 +202,7 @@ class TestAPIToolsService:
     @pytest.mark.asyncio
     async def test_get_hacker_news_top_success(self):
         """Test successful Hacker News top stories retrieval."""
-        with patch('services.api_tools.get_settings') as mock_settings:
+        with patch('services.api_tools.get_settings'):
             service = APIToolsService()
 
             # Mock top stories IDs response
@@ -255,7 +255,7 @@ class TestAPIToolsService:
     @pytest.mark.asyncio
     async def test_get_hacker_news_top_empty(self):
         """Test Hacker News with no stories."""
-        with patch('services.api_tools.get_settings') as mock_settings:
+        with patch('services.api_tools.get_settings'):
             service = APIToolsService()
 
             mock_ids_response = Mock()
@@ -274,7 +274,7 @@ class TestAPIToolsService:
     @pytest.mark.asyncio
     async def test_get_crypto_price_http_error(self):
         """Test cryptocurrency API HTTP error handling."""
-        with patch('services.api_tools.get_settings') as mock_settings:
+        with patch('services.api_tools.get_settings'):
             service = APIToolsService()
 
             with patch('httpx.AsyncClient') as mock_client_class:

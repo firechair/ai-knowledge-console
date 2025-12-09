@@ -43,6 +43,8 @@ test_documents/
 
 # Log files
 *.log
+logs_*/
+logs/
 
 # Test artifacts
 backend/test_results.txt

@@ -27,7 +27,7 @@ class TestConversationService:
 
     def test_init_creates_database(self, temp_db):
         """Test that initialization creates database and tables."""
-        service = ConversationService(db_path=temp_db)
+        ConversationService(db_path=temp_db)
 
         assert os.path.exists(temp_db)
 

@@ -12,10 +12,10 @@ from services.vector_store import VectorStoreService
 class TestVectorStoreService:
     """Test suite for VectorStoreService."""
 
-    @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
-    def test_init(self, mock_settings, mock_transformer, mock_chroma):
+    @patch('services.vector_store.SentenceTransformer')
+    @patch('services.vector_store.chromadb.PersistentClient')
+    def test_init(self, mock_chroma, mock_transformer, mock_settings):
         """Test VectorStoreService initialization."""
         mock_settings.return_value.chroma_persist_dir = "/tmp/chroma"
         mock_settings.return_value.embedding_model = "test-model"
@@ -29,8 +29,11 @@ class TestVectorStoreService:
 
         assert service.client == mock_client
         assert service.collection == mock_collection
+        assert service.embedding_model is None  # Lazy loading - not loaded yet
+        assert service.embedding_model_name == "test-model"
         mock_chroma.assert_called_once()
-        mock_transformer.assert_called_once_with("test-model")
+        # SentenceTransformer should NOT be called during init (lazy loading)
+        mock_transformer.assert_not_called()
 
     @patch('services.vector_store.chromadb.PersistentClient')
     @patch('sentence_transformers.SentenceTransformer')
@@ -177,10 +180,10 @@ class TestVectorStoreService:
 
         assert documents == []
 
-    @patch('services.vector_store.chromadb.PersistentClient')
-    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.get_settings')
-    def test_reload_embedding_model(self, mock_settings, mock_transformer, mock_chroma):
+    @patch('services.vector_store.SentenceTransformer')
+    @patch('services.vector_store.chromadb.PersistentClient')
+    def test_reload_embedding_model(self, mock_chroma, mock_transformer, mock_settings):
         """Test reloading embedding model."""
         mock_settings.return_value.chroma_persist_dir = "/tmp/chroma"
         mock_settings.return_value.embedding_model = "test-model"
@@ -190,13 +193,15 @@ class TestVectorStoreService:
         mock_client.get_or_create_collection.return_value = mock_collection
         mock_chroma.return_value = mock_client
 
+        # Create service - model not loaded yet (lazy loading)
         service = VectorStoreService()
+        assert mock_transformer.call_count == 0  # Not called during init
 
-        # Reload with different model
+        # Reload with different model - this triggers the first load
         service.reload_embedding_model("new-model")
 
-        # Check that SentenceTransformer was called twice (once in __init__, once in reload)
-        assert mock_transformer.call_count == 2
+        # Check that SentenceTransformer was called once (only in reload)
+        assert mock_transformer.call_count == 1
         mock_transformer.assert_called_with("new-model")
 
     @patch('services.vector_store.chromadb.PersistentClient')
