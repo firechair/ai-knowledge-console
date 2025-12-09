@@ -30,7 +30,12 @@ jobs:
       - name: Run backend tests
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
-        run: pytest -q backend/tests
+          # Minimal env vars for tests to import app.py successfully
+          LLM_PROVIDER: local
+          LLM_BASE_URL: http://localhost:8080
+          CHROMA_PERSIST_DIR: /tmp/test_chroma
+          EMBEDDING_MODEL: all-MiniLM-L6-v2
+        run: pytest -q backend/tests --no-cov
 
   frontend:
     runs-on: ubuntu-latest
