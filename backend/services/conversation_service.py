@@ -1,5 +1,6 @@
 import sqlite3
 import uuid
+import os
 from datetime import datetime
 from typing import List, Dict, Optional
 from pathlib import Path
@@ -8,7 +9,9 @@ from pathlib import Path
 class ConversationService:
     """Service for managing conversation history with SQLite storage"""
 
-    def __init__(self, db_path: str = "backend/conversations.db"):
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            db_path = os.getenv("CONVERSATIONS_DB_PATH", "backend/conversations.db")
         self.db_path = db_path
         self._init_database()
 
@@ -21,7 +24,8 @@ class ConversationService:
                 """
                 CREATE TABLE IF NOT EXISTS conversations (
                     id TEXT PRIMARY KEY,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    title TEXT
                 )
             """
             )
@@ -37,24 +41,15 @@ class ConversationService:
                 )
             """
             )
-            
-            # Add indexes for performance
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
-                ON messages(conversation_id)
-            """)
-            
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_messages_created_at
-                ON messages(created_at)
-            """)
-            
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_conversations_created_at
-                ON conversations(created_at)
-            """)
-            
             conn.commit()
+
+            try:
+                cols = [r[1] for r in conn.execute("PRAGMA table_info(conversations)").fetchall()]
+                if "title" not in cols:
+                    conn.execute("ALTER TABLE conversations ADD COLUMN title TEXT")
+                    conn.commit()
+            except Exception:
+                pass
 
     def create_conversation(self) -> str:
         """Create a new conversation and return its ID"""
@@ -120,83 +115,57 @@ class ConversationService:
             )
             return cursor.fetchone() is not None
 
-    def search_conversations(self, query: str, limit: int = 20) -> List[Dict]:
-        """
-        Search conversations by message content.
-        
-        Args:
-            query: Search term to find in message content
-            limit: Maximum number of results to return
-            
-        Returns:
-            List of conversations with matching content, including preview
-        """
+    def list_conversations(self) -> List[Dict]:
+        """List all conversations with metadata and last message preview"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
-                SELECT DISTINCT
-                    c.id,
-                    c.created_at,
-                    m.content as preview
+                SELECT c.id, c.created_at, c.title,
+                       (SELECT content FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message,
+                       (SELECT created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message_at
                 FROM conversations c
-                JOIN messages m ON c.id = m.conversation_id
-                WHERE m.content LIKE ?
                 ORDER BY c.created_at DESC
-                LIMIT ?
-            """,
-                (f"%{query}%", limit),
+                """
             )
+            rows = [dict(row) for row in cursor.fetchall()]
+        # Add preview field truncated
+        for r in rows:
+            lm = r.get("last_message") or ""
+            r["last_message_preview"] = (lm[:140] + ("…" if len(lm) > 140 else "")) if lm else ""
+            if not r.get("title"):
+                r["title"] = r["last_message_preview"] or r["id"]
+        return rows
 
-            results = []
-            for row in cursor.fetchall():
-                preview = row[2]
-                results.append({
-                    "id": row[0],
-                    "created_at": row[1],
-                    "preview": preview[:100] if preview else "New Conversation",  # First 100 chars
-                    "title": preview[:50] if preview else "New Conversation"  # First 50 chars for title
-                })
-
-            return results
-
-    def list_conversations(self, limit: int = 50) -> List[Dict]:
-        """
-        List all conversations with preview from first user message.
-        
-        Args:
-            limit: Maximum number of conversations to return
-            
-        Returns:
-            List of conversations ordered by creation date (newest first)
-        """
+    def get_messages(self, conversation_id: str) -> List[Dict[str, str]]:
+        """Return full message history for a conversation"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
-                SELECT
-                    c.id,
-                    c.created_at,
-                    (SELECT content FROM messages
-                     WHERE conversation_id = c.id
-                     AND role = 'user'
-                     ORDER BY created_at ASC
-                     LIMIT 1) as first_message
-                FROM conversations c
-                ORDER BY c.created_at DESC
-                LIMIT ?
-            """,
-                (limit,),
+                SELECT role, content, created_at
+                FROM messages
+                WHERE conversation_id = ?
+                ORDER BY created_at ASC
+                """,
+                (conversation_id,),
             )
+            return [dict(row) for row in cursor.fetchall()]
 
-            results = []
-            for row in cursor.fetchall():
-                first_msg = row[2]
-                results.append({
-                    "id": row[0],
-                    "created_at": row[1],
-                    "title": first_msg[:50] if first_msg else "New Conversation",
-                    "preview": first_msg[:100] if first_msg else "New Conversation"
-                })
+    def delete_conversation(self, conversation_id: str):
+        """Delete conversation and all its messages"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
+            conn.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+            conn.commit()
 
-            return results
+    def delete_all(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM messages")
+            conn.execute("DELETE FROM conversations")
+            conn.commit()
+
+    def set_title(self, conversation_id: str, title: str):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("UPDATE conversations SET title = ? WHERE id = ?", (title, conversation_id))
+            conn.commit()

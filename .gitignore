@@ -1,13 +1,21 @@
 # macOS
 .DS_Store
+Thumbs.db
 
 # Python venv
 backend/.venv/
 backend/venv/
+.venv/
+venv/
 
 # Python cache
 **/__pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Node
 frontend/node_modules/
@@ -15,6 +23,8 @@ frontend/dist/
 
 # Env files
 *.env
+.env
+.env.local
 
 # Data / local artifacts
 vectorstore/
@@ -22,8 +32,20 @@ vectorstore/
 *.db
 conversations.db
 
-.env
-.env.local
+# Scripts and utilities (not needed by end users)
+scripts/
+
+# Model files (users download their own)
+models/
+
+# Test documents (test fixtures)
+test_documents/
+
+# Log files
+*.log
+
+# Test artifacts
+backend/test_results.txt
 
 # AI Assistant artifacts
 .gemini/
@@ -37,21 +59,9 @@ htmlcov/
 .pytest_cache/
 **/.pytest_cache/
 
-# Python cache and temp files
-*.pyc
-*.pyo
-*.pyd
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-
 # IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS files
-.DS_Store
-Thumbs.db

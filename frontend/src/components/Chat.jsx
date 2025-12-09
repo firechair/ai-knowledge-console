@@ -1,138 +1,180 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, FileText, Globe, WifiOff, Wifi } from 'lucide-react';
-import { createChatSocket } from '../utils/api';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Loader2, FileText, Globe } from 'lucide-react';
+import { createChatSocket, getConversationMessages } from '../utils/api';
 
-export default function Chat({ enabledTools = [], toolParams = {} }) {
-  const [messages, setMessages] = useState([]);
+export default function Chat({ enabledTools = [], toolParams = {}, conversationIdProp = null }) {
+  const STORAGE_KEY = 'akconsole_chat_state';
+  const getSaved = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+  const saved = getSaved();
+  const [messages, setMessages] = useState(() => Array.isArray(saved.messages) ? saved.messages : []);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [useDocuments, setUseDocuments] = useState(true);
-  const [conversationId, setConversationId] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('connecting'); // 'connecting', 'connected', 'disconnected', 'error'
+  const [useDocuments, setUseDocuments] = useState(() => typeof saved.useDocuments === 'boolean' ? saved.useDocuments : true);
+  const [conversationId, setConversationId] = useState(() => saved.conversationId || null);
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
-  const reconnectAttemptRef = useRef(0);
-  const reconnectTimeoutRef = useRef(null);
-  const shouldReconnectRef = useRef(true);
+  const connectingRef = useRef(false);
+  const aliveRef = useRef(true);
+  const reconnectTimerRef = useRef(null);
+  const attemptsRef = useRef(0);
+  const queueRef = useRef([]);
+  
 
-  const maxReconnectAttempts = 5;
-  const baseDelay = 1000; // 1 second
-
-  const handleMessage = useCallback((event) => {
-    const data = JSON.parse(event.data);
-
-    if (data.type === 'start') {
-      setMessages(prev => [...prev, { role: 'assistant', content: '', sources: [] }]);
-    } else if (data.type === 'token') {
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1].content += data.content;
-        return updated;
-      });
-    } else if (data.type === 'end') {
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1].sources = data.sources;
-        return updated;
-      });
-      setIsLoading(false);
-      // Update conversation ID from server
-      if (data.conversation_id) {
-        setConversationId(data.conversation_id);
-      }
-    } else if (data.type === 'api_data') {
-      // Could display API data in UI
-      console.log('API Data:', data.data);
-    }
-  }, []);
-
-  const connectWebSocket = useCallback(() => {
-    try {
-      console.log('Attempting to connect WebSocket...');
-      setConnectionStatus('connecting');
-
-      const ws = createChatSocket();
-
-      ws.onopen = () => {
-        console.log('WebSocket connected successfully');
-        setConnectionStatus('connected');
-        reconnectAttemptRef.current = 0; // Reset reconnect attempts on successful connection
-      };
-
-      ws.onmessage = handleMessage;
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setConnectionStatus('error');
-      };
-
-      ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
-        setConnectionStatus('disconnected');
-
-        // Only attempt to reconnect if we should (not manually closed)
-        if (shouldReconnectRef.current && reconnectAttemptRef.current < maxReconnectAttempts) {
-          const delay = Math.min(baseDelay * Math.pow(2, reconnectAttemptRef.current), 30000);
-          console.log(
-            `Reconnecting in ${delay}ms... (attempt ${reconnectAttemptRef.current + 1}/${maxReconnectAttempts})`
-          );
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttemptRef.current += 1;
-            connectWebSocket();
-          }, delay);
-        } else if (reconnectAttemptRef.current >= maxReconnectAttempts) {
-          console.error('Max reconnection attempts reached');
-          setConnectionStatus('error');
-        }
-      };
-
-      wsRef.current = ws;
-    } catch (error) {
-      console.error('Failed to create WebSocket:', error);
-      setConnectionStatus('error');
-    }
-  }, [handleMessage]);
+  
 
   useEffect(() => {
-    shouldReconnectRef.current = true;
-    connectWebSocket();
+    try {
+      const payload = JSON.stringify({ messages, conversationId, useDocuments });
+      localStorage.setItem(STORAGE_KEY, payload);
+    } catch {}
+  }, [messages, conversationId, useDocuments]);
 
-    return () => {
-      shouldReconnectRef.current = false;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
+  useEffect(() => {
+    if (!conversationIdProp || conversationIdProp === conversationId) return;
+    (async () => {
+      try {
+        const res = await getConversationMessages(conversationIdProp);
+        const msgs = (res.data?.messages || []).map(m => ({ role: m.role, content: m.content }));
+        setConversationId(conversationIdProp);
+        setMessages(msgs);
+      } catch {}
+    })();
+  }, [conversationIdProp]);
+
+  const ensureSocket = () => {
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      return wsRef.current;
+    }
+    if (connectingRef.current) return wsRef.current;
+    connectingRef.current = true;
+    const socket = createChatSocket();
+    wsRef.current = socket;
+    socket.onopen = () => {
+      connectingRef.current = false;
+      console.log('WebSocket open');
+      attemptsRef.current = 0;
+      const q = queueRef.current;
+      queueRef.current = [];
+      q.forEach(msg => {
+        try { socket.send(msg); } catch {}
+      });
+    };
+    socket.onclose = (evt) => {
+      // Suppress noisy close logs in dev; schedule reconnect
+      connectingRef.current = false;
+      if (aliveRef.current) {
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+        }
+        attemptsRef.current = Math.min(attemptsRef.current + 1, 10);
+        const delay = Math.min(500 * attemptsRef.current, 5000);
+        reconnectTimerRef.current = setTimeout(() => {
+          ensureSocket();
+        }, delay);
       }
     };
-  }, [connectWebSocket]);
+    socket.onerror = (err) => {
+      // Suppress noisy error logs in dev; schedule reconnect
+      connectingRef.current = false;
+      if (aliveRef.current) {
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+        }
+        attemptsRef.current = Math.min(attemptsRef.current + 1, 10);
+        const delay = Math.min(500 * attemptsRef.current, 5000);
+        reconnectTimerRef.current = setTimeout(() => {
+          ensureSocket();
+        }, delay);
+      }
+    };
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'start') {
+        setMessages(prev => [...prev, { role: 'assistant', content: '', sources: [] }]);
+      } else if (data.type === 'token') {
+        setMessages(prev => {
+          const updated = [...prev];
+          const cur = updated[updated.length - 1];
+          const next = (cur.content || '') + (data.content || '');
+          updated[updated.length - 1] = { ...cur, content: next };
+          return updated;
+        });
+      } else if (data.type === 'end') {
+        setMessages(prev => {
+          const updated = [...prev];
+          const cur = updated[updated.length - 1];
+          const normalized = normalizeText(cur.content || '');
+          updated[updated.length - 1] = { ...cur, content: normalized, sources: data.sources };
+          return updated;
+        });
+        setIsLoading(false);
+        if (data.conversation_id) {
+          setConversationId(data.conversation_id);
+        }
+      } else if (data.type === 'api_data') {
+        console.log('API Data:', data.data);
+      }
+    };
+    return socket;
+  };
+
+  const normalizeText = (t) => {
+    // collapse immediate duplicate words: "Hi Hi" -> "Hi"
+    let s = t.replace(/(\b[\w'’]+\b)(\s+\1\b)+/gi, '$1');
+    // reduce repeated punctuation like "!!!!" -> "!"
+    s = s.replace(/([!?.])\1{1,}/g, '$1');
+    return s;
+  };
+
+  useEffect(() => {
+    ensureSocket();
+    return () => {
+      try {
+        const ws = wsRef.current;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.close(1000);
+        }
+        wsRef.current = null;
+      } catch {}
+      aliveRef.current = false;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = () => {
-    if (!input.trim() || isLoading || connectionStatus !== 'connected') return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Send via WebSocket
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
+    const sock = ensureSocket();
+    const payload = JSON.stringify({
         message: input,
         use_documents: useDocuments,
         tools: enabledTools,
         tool_params: toolParams,
         conversation_id: conversationId
-      }));
+      });
+    if (sock?.readyState === WebSocket.OPEN) {
+      sock.send(payload);
     } else {
-      // WebSocket not ready, show error
-      setIsLoading(false);
-      console.error('WebSocket is not connected');
+      console.warn('WebSocket not open; will send after open');
+      queueRef.current.push(payload);
     }
 
     setInput('');
@@ -140,44 +182,8 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Connection Status Banner */}
-      {connectionStatus !== 'connected' && (
-        <div
-          className={`px-4 py-2 text-sm font-medium flex items-center justify-center gap-2 ${connectionStatus === 'connecting'
-              ? 'bg-yellow-100 text-yellow-800'
-              : connectionStatus === 'disconnected'
-                ? 'bg-orange-100 text-orange-800'
-                : 'bg-red-100 text-red-800'
-            }`}
-        >
-          {connectionStatus === 'connecting' ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              <span>Connecting to chat server...</span>
-            </>
-          ) : connectionStatus === 'disconnected' ? (
-            <>
-              <WifiOff size={16} />
-              <span>Reconnecting... (attempt {reconnectAttemptRef.current + 1}/{maxReconnectAttempts})</span>
-            </>
-          ) : (
-            <>
-              <WifiOff size={16} />
-              <span>Connection failed. Please refresh the page.</span>
-            </>
-          )}
-        </div>
-      )}
-
-      {connectionStatus === 'connected' && reconnectAttemptRef.current > 0 && (
-        <div className="px-4 py-2 text-sm font-medium flex items-center justify-center gap-2 bg-green-100 text-green-800">
-          <Wifi size={16} />
-          <span>Reconnected successfully!</span>
-        </div>
-      )}
-
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center text-gray-400 mt-20">
             <p className="text-xl">Ask me anything!</p>
@@ -229,7 +235,6 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
               checked={useDocuments}
               onChange={(e) => setUseDocuments(e.target.checked)}
               className="rounded"
-              aria-label="Use uploaded documents in responses"
             />
             <FileText size={16} />
             <span>Use documents</span>
@@ -239,9 +244,9 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
               onClick={() => {
                 setConversationId(null);
                 setMessages([]);
+                try { localStorage.removeItem(STORAGE_KEY); } catch {}
               }}
               className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              aria-label="Start new conversation"
             >
               + New Conversation
             </button>
@@ -254,19 +259,14 @@ export default function Chat({ enabledTools = [], toolParams = {} }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder={connectionStatus === 'connected' ? "Type your message..." : "Connecting..."}
+            placeholder="Type your message..."
             className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading || connectionStatus !== 'connected'}
-            aria-label="Chat message input"
-            aria-describedby="send-button-help"
+            disabled={isLoading}
           />
           <button
             onClick={sendMessage}
-            disabled={isLoading || !input.trim() || connectionStatus !== 'connected'}
+            disabled={isLoading || !input.trim()}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={connectionStatus !== 'connected' ? 'Waiting for connection...' : 'Send message'}
-            aria-label="Send message"
-            id="send-button-help"
           >
             <Send size={20} />
           </button>
