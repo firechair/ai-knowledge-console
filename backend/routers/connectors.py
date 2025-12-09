@@ -16,13 +16,24 @@ connectors_store = {
     "weather": {"enabled": False, "configured": False},
     "crypto": {"enabled": True, "configured": True},  # No API key needed
     "hackernews": {"enabled": True, "configured": True},  # No API key needed
+    "gmail": {"enabled": False, "configured": False},
     "drive": {"enabled": False, "configured": False},
-    "slack": {"enabled": False, "configured": False}
+    "slack": {"enabled": False, "configured": False},
+    "notion": {"enabled": False, "configured": False},
 }
 
 @router.get("/")
 async def list_connectors():
     """List all available connectors and their status"""
+    # Reflect OAuth token status
+    try:
+        from services.oauth_tokens import token_summary
+        summary = token_summary("default_user")
+        for name in ["gmail", "drive", "slack", "notion"]:
+            if name in connectors_store:
+                connectors_store[name]["configured"] = bool(summary.get(name))
+    except Exception:
+        pass
     return {"connectors": connectors_store}
 
 @router.post("/configure")

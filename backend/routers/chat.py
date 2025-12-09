@@ -64,6 +64,8 @@ async def chat_query(
     # Generate response
     system_prompt = (
         "You are an AI assistant with access to documents and external data. "
+        "When 'External Data' is provided, treat it as fresh, authoritative information (e.g., Hacker News, Weather, Crypto). "
+        "Incorporate it directly into your answer and do not claim lack of internet access—use the data given. "
         "Provide accurate, helpful answers based on the context provided."
     )
 
@@ -131,6 +133,8 @@ async def websocket_chat(
 
             system_prompt = (
                 "You are an AI assistant with access to documents and external data. "
+                "When 'External Data' is provided, treat it as fresh, authoritative information (e.g., Hacker News, Weather, Crypto). "
+                "Incorporate it directly into your answer and do not claim lack of internet access—use the data given. "
                 "Provide accurate, helpful answers based on the context provided."
             )
 
@@ -180,9 +184,17 @@ async def _fetch_tool_data(
             elif tool == "hackernews":
                 data["hackernews"] = await api_tools.get_hacker_news_top()
             elif tool == "drive":
-                data["drive"] = {"error": "Drive connector requires configuration"}
+                q = params.get("drive_query", "")
+                data["drive"] = await api_tools.drive_search(q)
             elif tool == "slack":
-                data["slack"] = {"error": "Slack connector requires configuration"}
+                q = params.get("slack_query", "")
+                data["slack"] = await api_tools.slack_search_messages(q)
+            elif tool == "gmail":
+                q = params.get("gmail_query", "")
+                data["gmail"] = await api_tools.gmail_search(q)
+            elif tool == "notion":
+                q = params.get("notion_query", "")
+                data["notion"] = await api_tools.notion_search(q)
         except Exception as e:
             data[tool] = {"error": str(e)}
 

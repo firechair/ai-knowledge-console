@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+export const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -33,9 +33,29 @@ export const sendChat = (message, options = {}) => api.post('/api/chat/query', {
 
 // WebSocket connection for streaming
 export const createChatSocket = () => {
-  const wsUrl = API_BASE.replace('http', 'ws') + '/api/chat/ws';
+  let base = API_BASE;
+  if (!base) {
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.host; // e.g. localhost:5173
+    // Backend is expected at 8000 in dev when not proxied
+    const backendHost = host.includes(':') ? `${host.split(':')[0]}:8000` : host;
+    return new WebSocket(`${proto}://${backendHost}/api/chat/ws`);
+  }
+  const proto = base.startsWith('https') ? 'wss' : 'ws';
+  // Remove trailing slash
+  base = base.replace(/\/$/, '');
+  const wsUrl = `${proto}://${base.replace(/^https?:\/\//, '')}/api/chat/ws`;
   return new WebSocket(wsUrl);
 };
 
 // Settings APIs
 export const setEmbeddingModel = (name) => api.post('/api/settings/embedding_model', { name });
+
+// Conversations APIs
+export const listConversations = () => api.get('/api/conversations/');
+export const getConversation = (id) => api.get(`/api/conversations/${id}`);
+export const getConversationMessages = (id) => api.get(`/api/conversations/${id}/messages`);
+export const deleteConversation = (id) => api.delete(`/api/conversations/${id}`);
+export const createConversation = () => api.post('/api/conversations/');
+export const deleteAllConversations = () => api.delete('/api/conversations/');
+export const renameConversation = (id, title) => api.post(`/api/conversations/${id}/rename`, { title });

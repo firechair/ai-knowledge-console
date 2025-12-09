@@ -144,16 +144,16 @@ cd frontend
 npm run dev
 ```
 
-### 2. Authorize Services
+### 2. Authorize Services (Manual Setup)
 
-1. Open http://localhost:3000
+1. Open `http://localhost:5173`
 2. Go to **Connectors** tab
-3. For each OAuth service (Gmail, Drive, Slack, Notion):
-   - Click **Authorize** button
-   - You'll be redirected to the service
-   - Login and grant permissions
-   - Redirected back to app
-   - Status shows "✓ Authorized"
+3. Click **Authorize** for the service:
+   - **Gmail/Drive**: Opens Google consent; they use Google OAuth under the hood.
+   - **Slack**: Opens Slack OAuth consent.
+   - **Notion**: Opens Notion OAuth consent.
+4. Grant permissions and you’ll be redirected back to the app.
+5. The connector shows **Configured**, then you can toggle **Enabled**.
 
 ### 3. Enable and Test
 
@@ -167,6 +167,26 @@ npm run dev
 - Set query: "from:boss@company.com subject:report"
 - Ask: "What did my boss say about the quarterly report?"
 - LLM searches your emails and answers based on results
+
+---
+
+## Verification (Redirects)
+
+You can confirm the redirects with quick checks:
+
+**Google (Gmail/Drive)**
+- Login: `curl -s -D - "http://localhost:8000/api/auth/google/login?state=%7B%22return_url%22%3A%22http%3A%2F%2Flocalhost%3A5173%2F%23%2Fconnectors%22%7D" | grep -i '^location'`
+- Gmail alias: `curl -s -D - "http://localhost:8000/api/auth/gmail/login?..." | grep -i '^location'`
+- Drive alias: `curl -s -D - "http://localhost:8000/api/auth/drive/login?..." | grep -i '^location'`
+- Expect: a redirect to `accounts.google.com` with `redirect_uri=http://localhost:8000/api/auth/google/callback` and `state` pointing back to the Connectors tab.
+
+**Slack**
+- When configured: `curl -s -D - "http://localhost:8000/api/auth/slack/login?..." | grep -i '^location'` shows a redirect to Slack.
+- When not configured: returns `400` JSON with `{"detail":"Slack OAuth not configured"}`.
+
+**Notion**
+- When configured: `curl -s -D - "http://localhost:8000/api/auth/notion/login?..." | grep -i '^location'` shows a redirect to Notion.
+- When not configured: returns `400` JSON with `{"detail":"Notion OAuth not configured"}`.
 
 ---
 
@@ -195,6 +215,7 @@ https://your-domain.com/api/auth/notion/callback
 
 ```env
 APP_BASE_URL=https://your-domain.com
+FRONTEND_BASE_URL=https://your-domain.com
 ```
 
 ---
@@ -222,3 +243,6 @@ APP_BASE_URL=https://your-domain.com
 
 **"Tokens not working"**  
 → Restart backend after changing .env to reload settings
+
+**"Authorize returns JSON or doesn’t go back to UI"**
+→ Ensure the frontend was launched with `VITE_API_URL` pointing to the backend (e.g., `VITE_API_URL=http://localhost:8000 npm run dev`). The app now sends a `state` with `return_url` and the backend callbacks redirect to `FRONTEND_BASE_URL` (or the `state` URL) after token exchange.

@@ -1,34 +1,40 @@
 import chromadb
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
-from config import get_settings
 from typing import List, Dict
 import uuid
+from config import get_settings
 
 class VectorStoreService:
     def __init__(self):
         settings = get_settings()
-        
-        # Initialize ChromaDB
+        # Initialize ChromaDB (fast, local)
         self.client = chromadb.PersistentClient(
             path=settings.chroma_persist_dir,
             settings=Settings(anonymized_telemetry=False)
         )
-        
         # Get or create collection
         self.collection = self.client.get_or_create_collection(
             name="documents",
             metadata={"hnsw:space": "cosine"}
         )
-        
-        # Load embedding model
-        self.embedding_model = SentenceTransformer(settings.embedding_model)
+        # Defer loading the embedding model to first use to avoid blocking app startup
+        self.embedding_model = None
+        self.embedding_model_name = settings.embedding_model
 
     def reload_embedding_model(self, model_name: str):
+        # Lazy reload
+        from sentence_transformers import SentenceTransformer
         self.embedding_model = SentenceTransformer(model_name)
+        self.embedding_model_name = model_name
+
+    def _ensure_model(self):
+        if self.embedding_model is None:
+            from sentence_transformers import SentenceTransformer
+            self.embedding_model = SentenceTransformer(self.embedding_model_name)
     
     def add_documents(self, chunks: List[str], metadata: List[Dict]) -> int:
         """Add document chunks to vector store"""
+        self._ensure_model()
         embeddings = self.embedding_model.encode(chunks).tolist()
         ids = [str(uuid.uuid4()) for _ in chunks]
         
@@ -42,6 +48,7 @@ class VectorStoreService:
     
     def search(self, query: str, n_results: int = 5) -> List[Dict]:
         """Search for relevant chunks"""
+        self._ensure_model()
         query_embedding = self.embedding_model.encode([query]).tolist()
         
         results = self.collection.query(

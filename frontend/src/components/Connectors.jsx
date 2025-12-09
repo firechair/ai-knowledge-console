@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Github, Cloud, Bitcoin, Newspaper, Check, X, Settings } from 'lucide-react';
-import { listConnectors, configureConnector, toggleConnector } from '../utils/api';
+import { useState, useEffect, useMemo } from 'react';
+import { Github, Cloud, Bitcoin, Newspaper, Check, X, Settings, Mail, File, Slack, Book } from 'lucide-react';
+import { listConnectors, configureConnector, toggleConnector, API_BASE } from '../utils/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const CONNECTOR_INFO = {
   github: { icon: Github, name: 'GitHub', needsKey: true },
   weather: { icon: Cloud, name: 'Weather', needsKey: true },
   crypto: { icon: Bitcoin, name: 'Crypto', needsKey: false },
-  hackernews: { icon: Newspaper, name: 'Hacker News', needsKey: false }
+  hackernews: { icon: Newspaper, name: 'Hacker News', needsKey: false },
+  gmail: { icon: Mail, name: 'Gmail', oauth: true },
+  drive: { icon: File, name: 'Google Drive', oauth: true },
+  slack: { icon: Slack, name: 'Slack', oauth: true },
+  notion: { icon: Book, name: 'Notion', oauth: true }
 };
 
 export default function Connectors({ onToolsChange }) {
@@ -39,17 +43,18 @@ export default function Connectors({ onToolsChange }) {
     }
   });
 
-  // Update parent with enabled tools
-  const enabledTools = connectors
-    ? Object.entries(connectors)
-        .filter(([_, v]) => v.enabled && v.configured)
-        .map(([k]) => k)
-    : [];
-
+  // Update parent with enabled tools (stable identity)
+  const enabledTools = useMemo(() => {
+    if (!connectors) return [];
+    return Object.entries(connectors)
+      .filter(([_, v]) => v.enabled && v.configured)
+      .map(([k]) => k);
+  }, [connectors]);
+  
   // Call parent callback when tools change
   useEffect(() => {
     onToolsChange?.(enabledTools);
-  }, [enabledTools, onToolsChange]);
+  }, [enabledTools]);
 
   return (
     <div className="p-6">
@@ -92,6 +97,29 @@ export default function Connectors({ onToolsChange }) {
                       className="text-blue-600 hover:text-blue-800 text-sm"
                     >
                       Configure
+                    </button>
+                  )}
+                  {info?.oauth && !status.configured && (
+                    <button
+                      onClick={() => {
+                        const returnUrl = `${window.location.origin}#/connectors`;
+                        const state = encodeURIComponent(JSON.stringify({ return_url: returnUrl }));
+                        const provider = (name === 'gmail' || name === 'drive') ? 'google' : name;
+                        let url = '';
+                        if (!API_BASE) {
+                          const proto = window.location.protocol.startsWith('https') ? 'https' : 'http';
+                          const host = window.location.host;
+                          const backendHost = host.includes(':') ? `${host.split(':')[0]}:8000` : host;
+                          url = `${proto}://${backendHost}/api/auth/${provider}/login?state=${state}`;
+                        } else {
+                          const base = API_BASE.replace(/\/$/, '');
+                          url = `${base}/api/auth/${provider}/login?state=${state}`;
+                        }
+                        window.location.href = url;
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      Authorize
                     </button>
                   )}
                   <button

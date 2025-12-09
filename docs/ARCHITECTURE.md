@@ -101,8 +101,8 @@ If you **do** have a dedicated NVIDIA GPU and want to accelerate embedding gener
 
 ## 4. Design Patterns
 
-### Factory Pattern (OAuth)
-Used in `backend/services/auth/oauth_manager.py` to handle multiple OAuth providers (Google, Slack, Notion) with a unified interface. This makes adding new providers easy without changing the core logic.
+### OAuth Token Management
+Handled in `backend/services/oauth_tokens.py` and provider-specific routes under `backend/routers/auth.py` (Google, Slack, Notion). Tokens are stored in-memory for development; swap to persistent storage in production.
 
 ### RAG Pipeline
 1. **Ingestion**: Documents are chunked (recursive character splitter) and embedded.
@@ -111,162 +111,12 @@ Used in `backend/services/auth/oauth_manager.py` to handle multiple OAuth provid
 4. **Generation**: LLM generates answer based *only* on the provided context.
 
 ### WebSocket Streaming
-Chat responses are streamed via WebSockets (`/api/chat/ws`) to provide a real-time "typing" effect, improving perceived latency for the user.
+Chat responses are streamed via WebSockets (`/api/chat/ws`) to provide a real-time "typing" effect, improving perceived latency.
 
----
+Enhancement: Resilient WebSocket lifecycle in development
+- Problem: In React dev (Strict Mode), effects can mount twice, leading to multiple `onmessage` handlers or premature socket closes. This manifested as intermittent "WebSocket closed" errors and occasional duplicated tokens.
+- Fix: Frontend maintains a single connection with a connection guard, reconnects only when necessary, and ensures handler cleanup. The client also normalizes final text to collapse immediate duplicate words and repeated punctuation.
 
-## 5. Frontend Architecture
-
-### Component Structure
-
-| Component | Purpose | Key Features |
-|-----------|---------|-------------|
-| **App.jsx** | Main application shell | Tab navigation, keyboard shortcuts (Cmd+1-4) |
-| **Chat.jsx** | Chat interface | WebSocket streaming, message display, input handling |
-| **DocumentUpload.jsx** | Document upload UI | File preview before upload, drag-and-drop support |
-| **Connectors.jsx** | API/OAuth management | Tool configuration, OAuth authorization flow |
-| **Settings.jsx** | App configuration | User preferences, system settings |
-| **ConversationList.jsx** | Conversation browser | Search, browse, auto-refresh conversation history |
-| **ErrorBoundary.jsx** | Error protection | Catches React errors, prevents white screen crashes |
-
-### State Management
-- **React Query** (`@tanstack/react-query`): Server state, caching, auto-refresh
-- **Local State** (`useState`): UI state, form inputs, temporary data
-- **WebSocket State**: Connection status, reconnection logic with exponential backoff
-
-### Constants & Configuration
-All magic numbers and configuration values are centralized in `frontend/src/constants.js`:
-- API/WebSocket URLs
-- File upload limits
-- UI timing constants
-- Keyboard shortcuts
-- Error messages
-- Theme colors
-
-### Accessibility Features
-- **WCAG 2.1 Compliance**: ARIA labels, roles, and live regions
-- **Keyboard Navigation**: Full keyboard support with visual focus indicators
-- **Screen Reader Support**: Semantic HTML and proper ARIA annotations
-- **Keyboard Shortcuts**: 
-  - `Cmd/Ctrl + 1-4`: Tab navigation
-  - `Escape`: Clear selections
-
----
-
-## 6. Backend Architecture
-
-### Service Layer
-
-| Service | File | Responsibility |
-|---------|------|----------------|
-| **LLMService** | `services/llm_service.py` | LLM communication (OpenRouter/llama.cpp) |
-| **VectorStoreService** | `services/vector_store.py` | ChromaDB embedding and search operations |
-| **ConversationService** | `services/conversation_service.py` | SQLite conversation history management |
-| **APIToolsService** | `services/api_tools.py` | External API integrations |
-| **DocumentProcessor** | `services/document_processor.py` | PDF/DOCX/TXT text extraction |
-
-### Performance Optimizations
-
-#### Database Indexing
-Three strategic indexes on the SQLite conversation database:
-```sql
-CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
-CREATE INDEX idx_conversations_created_at ON conversations(created_at);
-```
-**Impact**: 3-5x faster queries when retrieving conversation history.
-
-### Constants & Configuration
-All configuration values centralized in `backend/constants.py`:
-- LLM parameters (temperature, max tokens)
-- Vector store settings (chunk size, overlap)
-- File upload limits
-- API base URLs
-- Error messages
-- HTTP status codes
-
-### Error Handling
-
-#### Custom Exception Hierarchy
-```python
-AppException (base)
-├── ValidationError (HTTP 400)
-├── NotFoundError (HTTP 404)
-├── ConfigurationError (HTTP 500)
-├── ExternalServiceError (HTTP 502)
-└── RateLimitError (HTTP 429)
-```
-
-#### Error Handler Middleware
-- Catches all exceptions globally
-- Returns consistent JSON format: `{"error": "message"}`
-- Logs errors with full context
-- Different messages for dev vs production
-
-### Logging Infrastructure
-
-#### Structured JSON Logging
-All logs output in JSON format for easy aggregation:
-```json
-{
-  "timestamp": "2025-12-04T08:00:00Z",
-  "level": "INFO",
-  "logger": "app",
-  "message": "Request completed",
-  "request_id": "abc-123",
-  "path": "/api/chat",
-  "method": "POST",
-  "duration_ms": 245
-}
-```
-
-**Benefits**:
-- Parse with Elasticsearch, Datadog, CloudWatch
-- Request ID tracking through entire lifecycle
-- Easy filtering and aggregation
-- Performance monitoring
-
-### Dependency Injection
-Services are injected via FastAPI's dependency system:
-```python
-from dependencies import get_llm_service, get_vector_store
-
-@router.post("/query")
-async def query(
-    llm: LLMService = Depends(get_llm_service),
-    vector_store: VectorStoreService = Depends(get_vector_store)
-):
-    # Use services...
-```
-**Benefits**: Easier testing, cleaner code, better separation of concerns.
-
----
-
-## 7. Security Considerations
-
-- **Rate Limiting**: 100 requests per minute per IP (configurable)
-- **CORS**: Restricted to configured origins
-- **File Upload**: Max 25MB, validated file types
-- **OAuth**: State parameter validation, PKCE where supported
-- **Secrets**: Environment variables only, never committed
-- **Non-root Docker**: Containers run as non-privileged user
-
----
-
-## 8. Monitoring & Observability
-
-### Available Metrics
-- Request duration via structured logs
-- Error rates by endpoint
-- WebSocket connection stats
-- Conversation search performance
-
-### Health Checks
-- **HTTP**: `GET /health` returns 200 OK
-- **Docker**: Configured in compose for automatic restart
-
-### Recommended Production Setup
-- **Log Aggregation**: Elasticsearch + Kibana or Datadog
-- **APM**: Application performance monitoring
-- **Alerts**: Error rate thresholds
-- **Metrics**: Response time p95/p99
+OpenRouter streaming (SSE)
+- When `LLM_PROVIDER=openrouter`, the backend streams Server-Sent Events from `https://openrouter.ai/api/v1/chat/completions` and forwards deltas over WebSocket.
+- The client concatenates deltas and applies final normalization. This provides stable streaming while avoiding stutter artifacts.

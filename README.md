@@ -6,6 +6,7 @@
 
 - **[License](LICENSE)** - GPL v3.0 with Non-Commercial clause
 - **[System Architecture](docs/ARCHITECTURE.md)** - Technical design, Docker optimization, and GPU setup guide
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Complete reference for all environment variables and settings
 - **[OAuth Setup Guide](docs/OAUTH_SETUP.md)** - Detailed instructions for Gmail, Drive, Slack, and Notion integration
 - **[Usage Guide](docs/USAGE_GUIDE.md)** - Practical scenarios and examples for different use cases
 
@@ -35,31 +36,15 @@ See [Configuration](#optional-enhancements) below to enable optional features.
 - Ready to clone and run - perfect for portfolio demonstration
 
 ## Features
-
-### Core Functionality
-- **Document upload**: PDF, DOCX, TXT with preview before upload
-- **Chunking + Vector Store**: ChromaDB persistent storage with optimized indexes
-- **RAG chat**: REST and WebSocket streaming with real-time responses
-- **Conversation memory**: AI remembers context from previous messages
-- **Conversation management**: Search and browse your entire conversation history
-
-### User Experience
-- **Keyboard shortcuts**: Navigate with Cmd+1-4, Escape, and more
-- **Accessibility**: Full WCAG 2.1 compliance with ARIA labels and keyboard navigation
-- **Document preview**: See file contents before uploading to verify correctness
-- **Error boundary**: Graceful error handling prevents app crashes
-- **Loading states**: Clear visual feedback for all operations
-
-### Integrations (Optional)
-- **External tools**: GitHub commits, crypto prices, weather, Hacker News
-- **OAuth services**: Gmail, Google Drive, Slack, Notion
-
-### Production Ready
-- **Performance**: Database indexes for 5x faster queries
-- **Error handling**: Centralized exception handling with structured logging
-- **Monitoring**: JSON-formatted logs for easy aggregation and debugging
-- **Docker deployment**: Multi-stage builds, healthchecks, non-root user
-- **CI/CD**: GitHub Actions with automated testing and image builds
+- Document upload: PDF, DOCX, TXT
+- Chunking + ChromaDB persistent vector store
+- RAG chat: REST and WebSocket streaming
+- Conversation memory: tracks chat history for context-aware follow-up questions
+- Conversations management: list, open, rename, delete, bulk delete
+- External tools (optional): GitHub commits, crypto prices, weather, Hacker News
+- OAuth integrations (optional): Gmail, Google Drive, Slack, Notion
+- Production Docker: multi-stage builds, healthchecks, non-root user
+- CI/CD: GitHub Actions building and pushing Docker images to GHCR
 
 ## Quick Demo
 ![Usage Demo](docs/media/usage.gif)
@@ -134,28 +119,37 @@ You have several options to power the AI responses. Choose the one that fits you
    curl http://localhost:8080/health
    ```
 
-### Option 2: OpenAI API (Fastest Setup)
+### Option 2: OpenRouter API (Hosted Models)
 
-**Pros**: No local resources needed, fastest responses  
-**Cons**: Costs money, sends data to OpenAI
+**Pros**: No local resources needed, access to multiple models including GPT-4, Claude, etc.  
+**Cons**: Requires API key and internet connection, small cost per request
 
-1. **Get an API key** from [OpenAI Platform](https://platform.openai.com/api-keys)
+1. **Get an API key** from [OpenRouter](https://openrouter.ai/keys)
 
 2. **Configure the backend** (`backend/.env`):
    ```env
-   LLM_PROVIDER=openai
-   OPENAI_API_KEY=sk-...
+   LLM_PROVIDER=openrouter
+   OPENROUTER_API_KEY=sk-or-v1-...
+   OPENROUTER_MODEL=x-ai/grok-4.1-fast
    ```
 
-3. **Modify `backend/services/llm_service.py`** to use OpenAI client:
-   ```python
-   # Add OpenAI support (requires: pip install openai)
-   from openai import OpenAI
-   
-   if self.settings.llm_provider == "openai":
-       client = OpenAI(api_key=self.settings.openai_api_key)
-       # Use client.chat.completions.create(...)
+3. **Choose your model**:
+   - `x-ai/grok-4.1-fast` - Fast responses, good quality (default)
+   - `anthropic/claude-3.5-sonnet` - Excellent reasoning
+   - `openai/gpt-4-turbo` - Best general purpose
+   - `google/gemini-pro-1.5` - Good balance of speed and quality
+   - See [OpenRouter Models](https://openrouter.ai/models) for full list
+
+4. **Optional: Fine-tune generation** (in `.env`):
+   ```env
+   OPENROUTER_TEMPERATURE=0.7      # 0.0-2.0, higher = more creative
+   OPENROUTER_MAX_TOKENS=1024      # Max response length
+   OPENROUTER_FREQUENCY_PENALTY=0.2 # Reduce repetition
    ```
+
+**How it works:** Backend streams from OpenRouter's API via Server-Sent Events (SSE) and forwards to frontend WebSocket.
+
+**Note:** OpenRouter provides unified access to OpenAI, Anthropic, Google, and other providers. If you want GPT-4, use model `openai/gpt-4-turbo` through OpenRouter.
 
 ### Option 3: Ollama (Easy Local Setup)
 
@@ -186,7 +180,8 @@ You have several options to power the AI responses. Choose the one that fits you
    LLM_PROVIDER=local
    LLM_BASE_URL=http://localhost:11434/v1
    ```
-   Ollama provides an OpenAI-compatible endpoint at `/v1`.
+  Ollama provides an OpenAI-compatible endpoint at `/v1`.
+
 
 ## Quickstart: Docker (macOS/Windows)
 1. Start Docker Desktop
@@ -230,29 +225,7 @@ docker compose up --build -d
    - **(Optional)** Enable external tools (`github`, `crypto`, `weather`, `hackernews`) and provide params.
    - **(Optional)** Authorize OAuth services (`gmail`, `drive`, `slack`, `notion`) via Connectors tab, then enable them.
    - Streaming responses are available via WebSocket.
-   - Click "+ New Conversation" to start fresh; the system maintains history within a conversation for context-aware responses.
-
-### Keyboard Shortcuts
-Navigate efficiently with keyboard shortcuts:
-- **Cmd/Ctrl + 1** - Go to Chat tab
-- **Cmd/Ctrl + 2** - Go to Documents tab
-- **Cmd/Ctrl + 3** - Go to Connectors tab
-- **Cmd/Ctrl + 4** - Go to Settings tab
-- **Escape** - Clear conversation selection
-
-### Conversation Management
-- **Search conversations**: Use the search box in the Chat tab to find past conversations by content
-- **Browse history**: Click any conversation in the list to load its full history
-- **Auto-refresh**: Conversation list updates every 30 seconds
-- **Preview**: See conversation titles and message previews before opening
-
-### Document Preview
-When uploading documents:
-1. Select a file (PDF, DOCX, or TXT)
-2. Preview appears showing:
-   - Text files: First 500 characters
-   - PDF/DOCX: File name and size
-3. Click "Confirm Upload" to proceed or "Cancel" to choose a different file
+   - Click "New" in Conversations to start a fresh conversation; open a conversation to hydrate Chat with its history; rename conversations inline.
 
 ## Configuration
 
@@ -290,9 +263,9 @@ OPENWEATHER_API_KEY=your_api_key
 
 **Gmail, Google Drive, Slack, Notion** require OAuth 2.0 setup.
 
-**Quick summary**:
-1. Create OAuth app in each provider (Google Cloud, Slack, Notion)
-2. Add credentials to `.env`:
+**Quick checklist**:
+1. Create an OAuth app in each provider (Google Cloud, Slack, Notion)
+2. Add credentials to `.env` and dev URLs:
    ```env
    GOOGLE_CLIENT_ID=...
    GOOGLE_CLIENT_SECRET=...
@@ -300,8 +273,12 @@ OPENWEATHER_API_KEY=your_api_key
    SLACK_CLIENT_SECRET=...
    NOTION_CLIENT_ID=...
    NOTION_CLIENT_SECRET=...
+    APP_BASE_URL=http://localhost:8000
+    FRONTEND_BASE_URL=http://localhost:5173
    ```
-3. You can then authorize your accounts through the UI
+3. Start frontend with backend URL: `VITE_API_URL=http://localhost:8000 npm run dev`
+4. Authorize in the **Connectors** tab; you’ll be redirected to the provider and back to the app
+5. See full steps in **docs/OAUTH_SETUP.md**
 
 ### Full .env Example
 
@@ -317,12 +294,17 @@ OPENWEATHER_API_KEY=
 
 # Optional: OAuth Integrations
 APP_BASE_URL=http://localhost:8000
+FRONTEND_BASE_URL=http://localhost:5173
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 SLACK_CLIENT_ID=
 SLACK_CLIENT_SECRET=
 NOTION_CLIENT_ID=
 NOTION_CLIENT_SECRET=
+
+# Optional: OpenRouter (Hosted LLM)
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=
 ```
 
 Copy from example:
@@ -346,28 +328,31 @@ Frontend
 ```bash
 cd frontend
 npm ci
-npm run dev
+VITE_API_URL=http://localhost:8000 npm run dev
 ```
 Default dev ports: frontend (5173), backend (8000). CORS allows `http://localhost:5173` and `http://localhost:3000`.
 
 ## API Overview
-- **Documents**
+- Documents
   - `POST /api/documents/upload` — Upload and index a document
   - `GET  /api/documents/list` — List indexed documents
   - `DELETE /api/documents/{filename}` — Delete indexed chunks for a document
-- **Chat**
-  - `POST /api/chat/query` — Non-streaming chat; accepts `{ message, use_documents, tools, tool_params }`
+- Chat
+  - `POST /api/chat/query` — Non-streaming chat; accepts `{ message, use_documents, tools, tool_params, conversation_id }`
   - `WS   /api/chat/ws` — Streaming chat over WebSocket
-  - `POST /api/chat/conversations` — Create a new conversation
-  - `GET  /api/chat/conversations/{conversation_id}` — Retrieve conversation history
-  - `GET  /api/chat/conversations` — **NEW**: List/search all conversations
-    - Query params: `?search=term` (optional), `?limit=50` (optional)
-    - Returns conversation list with titles, previews, and timestamps
-- **Connectors**
+- Conversations
+  - `GET  /api/conversations/` — List conversations (id, created_at, title, last_message_preview)
+  - `GET  /api/conversations/{id}` — Get conversation metadata (messages_count)
+  - `GET  /api/conversations/{id}/messages` — Get full message history
+  - `POST /api/conversations/` — Create a conversation
+  - `POST /api/conversations/{id}/rename` — Set conversation title
+  - `DELETE /api/conversations/{id}` — Delete one conversation
+  - `DELETE /api/conversations/` — Delete all conversations
+- Connectors
   - `GET  /api/connectors/` — List available connectors and their status
   - `POST /api/connectors/configure` — Configure a connector with API key
   - `POST /api/connectors/{name}/toggle` — Enable/disable a connector
-- **Health**
+- Health
   - `GET  /health` — Health probe used by Compose
 
 ## Deploy from GHCR
@@ -471,6 +456,13 @@ LLM startup checks:
 
 Proxy/WebSockets:
 - Traefik config includes upgrade headers; if self-hosting a different proxy, ensure `Upgrade` and `Connection` headers pass through
+
+WebSocket streaming in development:
+- React dev mode can double-invoke effects causing transient `WebSocket closed` logs.
+- Cleanup guards only closing `OPEN` sockets to reduce dev-time errors; final text is normalized to mitigate duplicated tokens.
+
+Startup responsiveness:
+- Embedding model is lazily loaded on first add/search to avoid blocking backend startup. On first use, allow time for model initialization.
 
 ## Single-VM Deployment
 Minimum specs:

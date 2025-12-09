@@ -18,7 +18,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -r backend/requirements.txt
-          python -m pip install pytest ruff
+          python -m pip install pytest pytest-cov ruff
       - name: Sanity import check
         run: |
           python - <<'PY'

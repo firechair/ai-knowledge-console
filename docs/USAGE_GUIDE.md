@@ -5,6 +5,7 @@ This guide demonstrates practical use cases and scenarios for the AI Knowledge C
 ## Table of Contents
 - [New Features Guide](#new-features-guide)
 - [Core RAG Usage](#core-rag-usage)
+- [Conversations Management](#conversations-management)
 - [External API Tools](#external-api-tools)
 - [OAuth-Integrated Services](#oauth-integrated-services)
 - [Advanced Scenarios](#advanced-scenarios)
@@ -193,6 +194,42 @@ AI: The most frequently used methodology across the papers was...
 - "How do I authenticate with the payment API?"
 - "What's the rate limit for the user endpoint?"
 - "Show me example request/response for creating an order"
+
+---
+
+## API Key Setup Tutorial
+
+To use the external tools, you'll need to obtain API keys. Here is a step-by-step guide for each provider.
+
+### 1. GitHub Personal Access Token
+**Purpose**: Fetch commit data from repositories.
+
+1. Go to **[GitHub Settings > Developer settings](https://github.com/settings/apps)**.
+2. Click **Personal access tokens** → **Tokens (classic)**.
+3. Click **Generate new token** → **Generate new token (classic)**.
+4. Fill in:
+   - **Note**: "AI Knowledge Console"
+   - **Expiration**: 90 days (recommended)
+   - **Scopes**: Check only **`repo`** (gives read access).
+5. Click **Generate token** and copy it immediately (starts with `ghp_...`).
+
+### 2. OpenWeather API Key
+**Purpose**: Get real-time weather data.
+
+1. Go to **[OpenWeatherMap](https://openweathermap.org/)** and sign in/up.
+2. Click your username (top right) → **My API keys**.
+3. You will see a **Default** key, or create a new one named "AI Console".
+4. Copy the 32-character key.
+   - *Note: New keys take ~10 minutes to activate.*
+
+### 3. CoinGecko & Hacker News
+**Good news**: These APIs are **public and free**. No keys required!
+- **CoinGecko**: Rate limited to ~50 calls/min (plenty for personal use).
+- **Hacker News**: Completely open API.
+
+### 4. OAuth APIs (Gmail, Drive, Slack, Notion)
+For these services, you need to create an OAuth App in their respective developer consoles.
+Detailed step-by-step instructions are available in the **[OAuth Setup Guide](OAUTH_SETUP.md)**.
 
 ---
 
@@ -504,6 +541,18 @@ This means retrieval isn't finding relevant chunks.
 - Try: "List all documents you have access to"
 - Use more specific queries that match document content
 
+### Repetitive or stuttering responses
+
+**Symptoms**:
+- Output like `HiHi!! How How can can I I help help...`.
+
+**Cause**:
+- Streaming deltas can duplicate initial tokens, and some models stutter when sampling without penalties.
+
+**Resolution**:
+- Client-side normalization collapses duplicate words/punctuation.
+- For finer control, tune LLM payload parameters (OpenRouter): `temperature`, `top_p`, `frequency_penalty`, `presence_penalty`, `repetition_penalty`, `max_tokens` via backend configuration.
+
 ---
 
 ## Real-World Workflow Examples
@@ -540,3 +589,35 @@ This means retrieval isn't finding relevant chunks.
 For technical setup details, see:
 - [OAuth Setup Guide](OAUTH_SETUP.md) - Configure Gmail, Drive, Slack, Notion
 - [Architecture](ARCHITECTURE.md) - Understand how the system works
+## Conversations Management
+
+Manage and organize your chats:
+
+### Create & Open
+- Click **New** in the Conversations tab to create a conversation and jump to Chat.
+- Click **Open** on any conversation to hydrate Chat with its full history.
+
+### Rename
+- Click **Rename**, edit the title inline, then **Save**. Titles help you quickly identify sessions.
+
+### Delete
+- Delete a single conversation from its row.
+- Use **Delete All** to remove every conversation (with confirmation).
+
+### Notes
+- Chat persists locally (messages, `use documents` setting) via `localStorage` and hydrates from the backend when opening a conversation.
+- The server stores conversation history in SQLite at `backend/conversations.db`.
+### Authorize Connectors (OAuth)
+
+**Purpose**: Connect your accounts so the app can use Gmail, Drive, Slack, and Notion data.
+
+**Steps**:
+- Ensure `.env` includes `APP_BASE_URL=http://localhost:8000` and `FRONTEND_BASE_URL=http://localhost:5173`.
+- Start frontend with backend URL: `VITE_API_URL=http://localhost:8000 npm run dev`.
+- Open `http://localhost:5173`, go to **Connectors**.
+- Click **Authorize** for the desired service:
+  - Gmail/Drive → Google consent screen
+  - Slack → Slack consent screen
+  - Notion → Notion consent screen
+- After granting consent, you’re redirected back to the Connectors page.
+- Status shows **Configured**; toggle to **Enabled** to use in chat.
