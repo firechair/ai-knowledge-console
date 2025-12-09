@@ -8,6 +8,18 @@ class LLMService:
         self.settings = get_settings()
         self.base_url = self.settings.llm_base_url
     
+    @property
+    def is_openrouter(self) -> bool:
+        """Check if using OpenRouter provider"""
+        return self.settings.llm_provider == "openrouter"
+    
+    @property
+    def model(self) -> str:
+        """Get the model name based on provider"""
+        if self.is_openrouter:
+            return self.settings.openrouter_model
+        return "local"
+    
     async def generate(
         self,
         prompt: str,
@@ -48,7 +60,12 @@ class LLMService:
                     except Exception:
                         return json.dumps({"error": resp.text})
                 data = resp.json()
-                return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                # Safely extract content from OpenRouter response
+                choices = data.get("choices", [])
+                if choices:
+                    message = choices[0].get("message", {})
+                    return message.get("content", "")
+                return ""
         else:
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
