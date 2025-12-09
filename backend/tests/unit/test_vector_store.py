@@ -13,7 +13,7 @@ class TestVectorStoreService:
     """Test suite for VectorStoreService."""
 
     @patch('services.vector_store.get_settings')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.chromadb.PersistentClient')
     def test_init(self, mock_chroma, mock_transformer, mock_settings):
         """Test VectorStoreService initialization."""
@@ -181,7 +181,7 @@ class TestVectorStoreService:
         assert documents == []
 
     @patch('services.vector_store.get_settings')
-    @patch('services.vector_store.SentenceTransformer')
+    @patch('sentence_transformers.SentenceTransformer')
     @patch('services.vector_store.chromadb.PersistentClient')
     def test_reload_embedding_model(self, mock_chroma, mock_transformer, mock_settings):
         """Test reloading embedding model."""
