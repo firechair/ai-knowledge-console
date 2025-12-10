@@ -128,7 +128,7 @@ class TestChatAPI:
         # FastAPI should still accept empty string, but might want to add validation
         assert response.status_code == 200
 
-    def test_websocket_connection(self, test_client):
+    def test_websocket_connection(self, test_client, override_dependencies):
         """Test WebSocket connection to /api/chat/ws."""
         with test_client.websocket_connect("/api/chat/ws") as websocket:
             # Send a message
