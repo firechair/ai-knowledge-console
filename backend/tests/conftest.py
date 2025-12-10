@@ -34,7 +34,14 @@ def mock_llm_service():
     """Mock LLM service for testing."""
     mock = Mock(spec=LLMService)
     mock.generate = AsyncMock(return_value="Test response")
-    mock.generate_stream = AsyncMock()
+    
+    # Mock generate_stream as an async generator
+    async def mock_stream(*args, **kwargs):
+        yield "Test "
+        yield "streaming "
+        yield "response"
+    
+    mock.generate_stream = Mock(return_value=mock_stream())
     mock.build_rag_prompt = Mock(return_value="Test prompt")
     return mock
 
