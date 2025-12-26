@@ -96,6 +96,101 @@ OPENROUTER_MAX_TOKENS=1024
 
 ---
 
+## Settings Management (New in v2.0)
+
+### settings.json
+
+**Location:** `backend/settings.json`
+
+The application now supports user-configurable settings managed through the UI. These settings are stored in `settings.json` and merged with environment variables at runtime.
+
+**Example settings.json:**
+
+```json
+{
+  "llm": {
+    "provider_type": "cloud",
+    "cloud_provider": "openrouter",
+    "model": "x-ai/grok-4.1-fast",
+    "base_url": "https://openrouter.ai/api/v1",
+    "temperature": 0.7,
+    "max_tokens": 1024
+  },
+  "api_keys": {
+    "openrouter": "sk-or-v1-...",
+    "github_token": "ghp_...",
+    "openweather_api_key": "..."
+  },
+  "embedding": {
+    "model": "all-MiniLM-L6-v2"
+  }
+}
+```
+
+### Configuration Precedence
+
+Configuration is loaded in the following order (later sources override earlier):
+
+1. **Application Defaults** - Hardcoded fallback values
+2. **settings.json** - User preferences from UI
+3. **Environment Variables (.env)** - Highest priority
+
+**Example:** If `LLM_PROVIDER=local` is set in `.env`, it overrides any cloud provider selection in `settings.json`.
+
+### Managing Settings
+
+**Via UI (Recommended):**
+1. Navigate to Settings tab in the application
+2. Configure LLM provider, API keys, and models
+3. Changes are automatically saved to `settings.json`
+
+**Via settings.json directly:**
+1. Edit `backend/settings.json`
+2. Restart the backend to apply changes
+3. Use environment variables for sensitive data in production
+
+### Model Management Settings
+
+**Environment Variables:**
+- `MODELS_DIR` - Directory for downloaded GGUF models (default: `./models`)
+- `EMBEDDING_MODELS_DIR` - Directory for embedding models (default: `./models/embeddings`)
+
+**UI Configuration:**
+- Navigate to Settings → Models tab
+- Download models with progress tracking
+- Models stored in configured directories
+
+**Example:**
+
+```env
+# Custom model directories
+MODELS_DIR=/app/data/models
+EMBEDDING_MODELS_DIR=/app/data/embeddings
+```
+
+### Security Considerations
+
+**Development:**
+- `settings.json` is git-ignored (see `.gitignore`)
+- Safe to use for local development
+
+**Production:**
+- **Recommended:** Use environment variables for sensitive data
+- Mount `settings.json` as a Docker secret
+- Or use secret management service (AWS Secrets Manager, HashiCorp Vault, etc.)
+
+**Best Practice:**
+
+```env
+# Production .env - use environment variables for secrets
+OPENROUTER_API_KEY=${OPENROUTER_API_KEY}  # From secret manager
+GITHUB_TOKEN=${GITHUB_TOKEN}              # From secret manager
+
+# Non-sensitive config can stay in settings.json
+```
+
+---
+
 ## Vector Database Settings
 
 ### ChromaDB Configuration

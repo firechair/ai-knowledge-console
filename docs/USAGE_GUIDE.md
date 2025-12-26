@@ -146,7 +146,143 @@ You: "Show me the Q4 budget breakdown"
 AI: [Fresh context, focused on budget]
 ```
 
+---
 
+## Model Management Workflows
+
+### Downloading a Local LLM Model
+
+**Scenario:** You want to download a local model for offline inference.
+
+**Steps:**
+1. Navigate to **Settings** tab in the UI
+2. Select **Models** section
+3. Click **Download LLM Model**
+4. Enter HuggingFace repository (e.g., `TheBloke/Llama-2-7B-GGUF`)
+5. Enter filename (e.g., `llama-2-7b.Q4_K_M.gguf`)
+6. Monitor download progress
+7. Model appears in "Local Models" list when complete
+8. Configure LLM settings to use the downloaded model
+
+**What Happens:**
+- ModelManager downloads GGUF file from HuggingFace
+- Progress tracked in real-time
+- Model stored in `MODELS_DIR` (default: `./models`)
+- Ready to use with local llama.cpp server
+
+**Tips:**
+- Choose quantized models (Q4_K_M, Q5_K_M) for better performance
+- Check model size before downloading (some are >10GB)
+- Use TheBloke's repositories for quality GGUF models
+
+---
+
+### Switching LLM Providers
+
+**Scenario:** Switch from local llama.cpp to cloud provider (OpenRouter).
+
+**Steps:**
+1. Navigate to **Settings** → **LLM Configuration**
+2. Toggle provider type to **Cloud**
+3. Select **OpenRouter** from cloud providers dropdown
+4. Enter your OpenRouter API key
+5. Select model (e.g., `x-ai/grok-4.1-fast`, `anthropic/claude-3.5-sonnet`)
+6. Adjust temperature and max_tokens if desired
+7. Click **Save Configuration**
+8. Chat interface now uses OpenRouter
+
+**Switching Back to Local:**
+1. Toggle provider type to **Local**
+2. Configure local LLM URL (default: `http://localhost:8080`)
+3. Save configuration
+
+**What Happens:**
+- ConfigService updates settings.json
+- LLMService switches provider immediately
+- No restart required
+- Settings persist across sessions
+
+**Tips:**
+- Keep both local and cloud API keys configured
+- Use local for privacy-sensitive chats
+- Use cloud for better quality when internet is available
+- Monitor OpenRouter costs at their dashboard
+
+---
+
+### Exporting Conversations
+
+**Scenario:** Export a conversation as PDF for sharing with your team.
+
+**Steps:**
+1. Complete your conversation in the Chat interface
+2. In the chat input, type: *"Generate a PDF summary of this conversation"*
+3. The AI creates a downloadable PDF file
+4. Click the download link in the response
+5. PDF opens with formatted conversation history
+
+**Available Formats:**
+- **PDF**: Professional formatting, ideal for sharing
+- **Markdown**: Plain text with formatting, ideal for documentation
+- **HTML**: Web-ready version, ideal for embedding
+
+**Example Prompts:**
+- "Create a PDF of this conversation"
+- "Export this chat as Markdown"
+- "Generate an HTML version of our discussion"
+- "Make a PDF with bullet-point summary of key decisions"
+
+**What Happens:**
+- LLM recognizes file generation request
+- FileService generates file in requested format
+- File stored in `static/generated/`
+- Absolute URL returned for download
+- Click link to download instantly
+
+**Tips:**
+- Request specific formatting (e.g., "with bullet points")
+- Ask for summaries to condense long conversations
+- Generated files persist until manually deleted
+- Works in Docker and local setups
+
+---
+
+### Managing API Keys
+
+**Scenario:** Add GitHub token for commit search integration.
+
+**Steps:**
+1. Navigate to **Settings** → **API Keys**
+2. Find **GitHub** in the list
+3. Enter your Personal Access Token
+4. Click **Save**
+5. Status indicator shows "Configured"
+6. GitHub tool is now available in Chat settings
+
+**Removing API Keys:**
+1. Navigate to API Keys section
+2. Click **Delete** next to the service
+3. Confirms removal and disables integration
+
+**What Happens:**
+- ConfigService stores key in settings.json
+- Connector becomes available immediately
+- Key used for API calls to external service
+- Status validation shows if key is working
+
+**Supported Services:**
+- **OpenRouter**: Cloud LLM provider
+- **GitHub**: Repository commit search
+- **OpenWeather**: Weather data
+- **OAuth Services**: Configured separately via Connectors tab
+
+**Tips:**
+- Use environment variables for production deployments
+- Rotate keys periodically for security
+- Test connection after adding keys
+- Check status indicators for validation
+
+---
 
 ## Core RAG Usage
 
