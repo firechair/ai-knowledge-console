@@ -301,7 +301,7 @@ NOTION_CLIENT_SECRET=...
 
 **Obtaining Credentials:**
 
-See the [OAuth Setup Guide](OAUTH_SETUP.md) for detailed instructions on creating OAuth applications for each provider.
+See the [OAuth Setup Guide](oauth_setup.md) for detailed instructions on creating OAuth applications for each provider.
 
 **Security:**
 - Never commit credentials to git
@@ -451,6 +451,5 @@ CONVERSATIONS_DB_PATH=/app/data/conversations.db
 
 **Last Updated:** December 1, 2025  
 **Related Docs:**
-- [OAuth Setup Guide](OAUTH_SETUP.md)
-- [Architecture](ARCHITECTURE.md)
-- [Quick Fixes](QUICK_FIXES.md)
+- [OAuth Setup Guide](oauth_setup.md)
+- [Architecture](architecture.md)

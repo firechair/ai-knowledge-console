@@ -1,5 +1,6 @@
 # macOS
 .DS_Store
+**/.DS_Store
 Thumbs.db
 
 # Python venv
@@ -32,6 +33,10 @@ vectorstore/
 *.db
 conversations.db
 
+# User settings and generated files
+backend/settings.json
+backend/static/generated/test.*
+
 # Scripts and utilities (not needed by end users)
 scripts/
 
@@ -48,6 +53,7 @@ logs/
 
 # Test artifacts
 backend/test_results.txt
+backend/test_file_gen.py
 
 # AI Assistant artifacts
 .gemini/

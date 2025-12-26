@@ -5,10 +5,10 @@
 ## 📚 Documentation
 
 - **[License](LICENSE)** - GPL v3.0 with Non-Commercial clause
-- **[System Architecture](docs/ARCHITECTURE.md)** - Technical design, Docker optimization, and GPU setup guide
-- **[Configuration Guide](docs/CONFIGURATION.md)** - Complete reference for all environment variables and settings
-- **[OAuth Setup Guide](docs/OAUTH_SETUP.md)** - Detailed instructions for Gmail, Drive, Slack, and Notion integration
-- **[Usage Guide](docs/USAGE_GUIDE.md)** - Practical scenarios and examples for different use cases
+- **[System Architecture](docs/architecture.md)** - Technical design, Docker optimization, and GPU setup guide
+- **[Configuration Guide](docs/configuration.md)** - Complete reference for all environment variables and settings
+- **[OAuth Setup Guide](docs/oauth_setup.md)** - Detailed instructions for Gmail, Drive, Slack, Notion integration
+- **[Usage Guide](docs/usage_guide.md)** - Practical scenarios and examples for different use cases
 
 
 An end-to-end Retrieval-Augmented Generation (RAG) web application. Upload your documents (PDF, DOCX, TXT), index them into a vector store (ChromaDB) with `SentenceTransformers`, and chat with a local LLM (llama.cpp) enriched by relevant document context and optional external tools (GitHub, Crypto, Weather, Hacker News, Gmail, Drive, Slack, Notion).
@@ -18,6 +18,7 @@ An end-to-end Retrieval-Augmented Generation (RAG) web application. Upload your 
 **The core RAG functionality works out-of-the-box with no API keys required:**
 - ✅ Upload documents (PDF, DOCX, TXT)
 - ✅ Chat with your documents using RAG
+- ✅ **Granular Context Control**: Select specific documents to use as context
 - ✅ Conversation memory
 - ✅ Streaming responses
 
@@ -31,28 +32,42 @@ See [Configuration](#optional-enhancements) below to enable optional features.
 
 **This project demonstrates production-grade AI engineering:**
 - Core RAG system works immediately (no setup friction)
+- **Advanced UI/UX**: Responsive design, intuitive settings panels, and real-time feedback
 - Optional integrations show OAuth 2.0 implementation skills
 - Clean architecture: separation of required vs optional features
 - Ready to clone and run - perfect for portfolio demonstration
 
 ## Features
-- Document upload: PDF, DOCX, TXT
-- Chunking + ChromaDB persistent vector store
-- RAG chat: REST and WebSocket streaming
-- Conversation memory: tracks chat history for context-aware follow-up questions
-- Conversations management: list, open, rename, delete, bulk delete
-- External tools (optional): GitHub commits, crypto prices, weather, Hacker News
-- OAuth integrations (optional): Gmail, Google Drive, Slack, Notion
-- Production Docker: multi-stage builds, healthchecks, non-root user
-- CI/CD: GitHub Actions building and pushing Docker images to GHCR
+- **Document Management**: 
+  - Upload PDF, DOCX, TXT
+  - Chunking + ChromaDB persistent vector store
+  - **New**: Select specific documents for targeted context retrieval via the Chat Settings panel
+- **RAG Chat**: 
+  - REST and WebSocket streaming
+  - **Smart Context**: Filter retrieval by filename (e.g., "Only answer from `CV.pdf`")
+- **Conversation Memory**: Tracks chat history for context-aware follow-up questions
+- **Conversations Management**: 
+  - List, open, rename, delete, bulk delete
+  - **Responsive UI**: Optimized for split-screen and mobile views
+- **External Tools (Optional)**: 
+  - **Unified Tools Panel**: View all available integrations in one list
+  - Public tools (Crypto, Hacker News) enabled by default
+  - Private tools (GitHub, Gmail, etc.) show configuration status
+- **OAuth Integrations**: Gmail, Google Drive, Slack, Notion
+- **Production Docker**: Multi-stage builds, healthchecks, non-root user
+- **CI/CD**: GitHub Actions building and pushing Docker images to GHCR
 
 ## Quick Demo
-![Usage Demo](docs/media/usage.gif)
+<video src="docs/media/Registrazione%20schermo%202025-12-26%20alle%2011.26.52.mov" autoplay loop muted playsinline width="800"></video>
 
-This GIF shows: starting the stack, uploading a doc, and running chat with RAG.
+**New Workflow Demonstrated:**
+1. **Upload**: Uploading a CV/Resume PDF.
+2. **Context Selection**: Opening the **new Settings Panel** (right-aligned) and specifically selecting the uploaded CV.
+3. **Chat**: Asking "Can you make a pdf format of these information provided?"
+4. **Response**: The LLM generates a structured response based *only* on the selected document.
 
 ## Architecture
-> 📖 **Deep Dive**: See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for detailed design decisions and GPU setup guides.
+> 📖 **Deep Dive**: See [`docs/architecture.md`](docs/architecture.md) for detailed design decisions and GPU setup guides.
 
 - Backend (`/backend`): FastAPI app (`app.py`), served by Gunicorn with Uvicorn workers.
 - Embeddings: `SentenceTransformer` model (`all-MiniLM-L6-v2`).
@@ -69,7 +84,7 @@ Ports
 ## Tech Stack
 - Backend: Python 3.11, FastAPI, Gunicorn+Uvicorn, httpx
 - RAG: ChromaDB, sentence-transformers
-- Frontend: React + Vite, Tailwind CSS, React Query
+- Frontend: React + Vite, Tailwind CSS, React Query, Radix UI (Popover/Dialogs)
 - Containerization: Docker, Docker Compose; Nginx production static serving
 - CI/CD: GitHub Actions, GHCR (GitHub Container Registry)
 
@@ -221,9 +236,11 @@ docker compose up --build -d
 2. Start the app (Docker or local dev).
 3. Upload documents via the UI; the backend extracts text, chunks and indexes into ChromaDB.
 4. Chat:
-   - Toggle "Use documents" to enable RAG.
-   - **(Optional)** Enable external tools (`github`, `crypto`, `weather`, `hackernews`) and provide params.
-   - **(Optional)** Authorize OAuth services (`gmail`, `drive`, `slack`, `notion`) via Connectors tab, then enable them.
+   - Click the **Settings icon** (next to the input bar) to open the control panel.
+   - **Select Documents**: Choose specific files to use as context (or default to all).
+   - **Select Tools**: Enable external tools (`github`, `crypto`, `weather`, `hackernews`).
+     - *Note*: Unconfigured tools will appear grayed out and prompt for setup.
+   - **(Optional)** Authorize OAuth services (`gmail`, `drive`, `slack`, `notion`) via Connectors tab.
    - Streaming responses are available via WebSocket.
    - Click "New" in Conversations to start a fresh conversation; open a conversation to hydrate Chat with its history; rename conversations inline.
 
@@ -278,7 +295,7 @@ OPENWEATHER_API_KEY=your_api_key
    ```
 3. Start frontend with backend URL: `VITE_API_URL=http://localhost:8000 npm run dev`
 4. Authorize in the **Connectors** tab; you’ll be redirected to the provider and back to the app
-5. See full steps in **docs/OAUTH_SETUP.md**
+5. See full steps in **docs/oauth_setup.md**
 
 ### Full .env Example
 
@@ -445,24 +462,23 @@ Traefik:
 - Production: use the TLS compose with `TRAEFIK_EMAIL` and `TRAEFIK_DOMAIN`
 
 ## Troubleshooting
-- Docker daemon not running: start Docker Desktop (macOS/Windows) or ensure Docker Engine service is active (Linux).
-- Linux LLM connectivity: use `host-gateway` mapping (already set). Confirm host LLM is listening on `:8080`.
-- HuggingFace hub compatibility: repo pins `huggingface_hub==0.25.2` to match `sentence-transformers==2.2.2`.
-- SSL warnings (`urllib3`): cosmetic on macOS LibreSSL, does not affect local development.
-
-LLM startup checks:
-- `curl http://localhost:8080/completion` should return an error or a JSON structure (server reachable)
-- Increase timeouts if responses are large or model is slow
-
-Proxy/WebSockets:
-- Traefik config includes upgrade headers; if self-hosting a different proxy, ensure `Upgrade` and `Connection` headers pass through
-
-WebSocket streaming in development:
-- React dev mode can double-invoke effects causing transient `WebSocket closed` logs.
-- Cleanup guards only closing `OPEN` sockets to reduce dev-time errors; final text is normalized to mitigate duplicated tokens.
-
-Startup responsiveness:
-- Embedding model is lazily loaded on first add/search to avoid blocking backend startup. On first use, allow time for model initialization.
+- **Docker daemon not running:** Start Docker Desktop (macOS/Windows) or ensure Docker Engine service is active (Linux).
+- **Infinite Spinner / Backend Unresponsive:**
+  - Check `curl http://localhost:8000/health` returns `{"status":"healthy"}`.
+  - First-time embedding model load is lazy; allow time for download/init on first document add/search.
+  - Ensure `sentence-transformers` and `chromadb` dependencies are installed (if running locally).
+  - Verify CORS `allowed_origins` in `.env` includes your frontend URL (e.g., `http://localhost:5173`).
+- **External Tools/OAuth Issues:**
+  - **Tools inactive:** Verify the connector is "Enabled" in the Connectors tab and API keys are set in `.env` (restart backend after `.env` changes).
+  - **OAuth JSON response/Stall:** Ensure frontend is started with `VITE_API_URL` pointing to backend (e.g., `VITE_API_URL=http://localhost:8000 npm run dev`). Check that `APP_BASE_URL` and `FRONTEND_BASE_URL` in `.env` match your actual URLs exactly.
+- **Data Persistence:**
+  - **Documents missing:** Check `CHROMA_PERSIST_DIR` path exists and is writable.
+  - **Conversations missing:** Check `backend/conversations.db` exists and has write permissions.
+- **Linux LLM connectivity:** Use `host-gateway` mapping (already set in compose). Confirm host LLM is listening on `:8080` (use `--host 0.0.0.0`).
+- **SSL warnings (`urllib3`):** Cosmetic on macOS LibreSSL; does not affect functionality.
+- **WebSocket Streaming:**
+  - In React Strict Mode (dev), you may see transient "WebSocket closed" logs; this is normal due to double-invocation of effects.
+  - If responses repeat or stutter, check `OPENROUTER_FREQUENCY_PENALTY` or client-side normalization logic.
 
 ## Single-VM Deployment
 Minimum specs:

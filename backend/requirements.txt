@@ -1,35 +1,18 @@
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-python-multipart==0.0.6
-websockets==12.0
-chromadb==0.4.22
-
-# Langchain with pinned core to prevent backtracking
-langchain==0.1.0
-langchain-community==0.0.12
-langchain-core==0.1.23  # Pin to prevent pip backtracking
-
-# ML dependencies with pinned versions
-sentence-transformers==2.2.2
-huggingface_hub==0.25.2
-transformers==4.26.1  # Pin to prevent pip backtracking
-
-# Document processing
-pypdf==3.17.4
-python-docx==1.1.0
-
-# Networking
-httpx==0.26.0
-
-# Config
-python-dotenv==1.0.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
-
-# Server
-gunicorn==21.2.0
-python-json-logger==2.0.7
-slowapi==0.1.9
-
-# Testing
-pytest-asyncio==0.21.1
+fastapi
+uvicorn
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+httpx
+chromadb
+sentence-transformers
+huggingface_hub
+pydantic-settings
+python-json-logger
+websockets
+slowapi
+# New dependencies for file generation
+reportlab
+markdown
+pypdf
+python-docx

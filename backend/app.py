@@ -1,12 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from pathlib import Path
 import time, uuid, json, logging
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from routers import documents, chat, connectors, settings, auth, conversations
+from routers import documents, chat, connectors, settings, auth, conversations, models, api_keys, files
 from services.vector_store import VectorStoreService
 from middleware.error_handler import register_exception_handlers
 from logging_config import setup_logging
@@ -20,7 +22,7 @@ limiter = Limiter(key_func=get_remote_address)
 async def lifespan(app: FastAPI):
     # Setup structured logging
     logger = setup_logging(level="INFO")
-    logger.info("Application starting up", version="1.0.0")
+    logger.info("Application starting up", extra={"version": "1.0.0"})
     
     # Startup: Initialize vector store
     app.state.vector_store = VectorStoreService()
@@ -50,8 +52,9 @@ cfg = get_settings()
 origins = [o.strip() for o in cfg.allowed_origins.split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-logger = logging.getLogger("uvicorn.access")
-logger.setLevel(logging.INFO)
+# Logger for access logs - use a dedicated logger to avoid conflicts with uvicorn's internal formatter
+access_logger = logging.getLogger("app.access")
+access_logger.setLevel(logging.INFO)
 _requests = {}
 
 @app.middleware("http")
@@ -104,7 +107,7 @@ async def add_request_id_and_log(request: Request, call_next):
         "status": response.status_code,
         "duration_ms": duration,
     }
-    logger.info(json.dumps(log))
+    access_logger.info(json.dumps(log))
     return response
 
 # Include routers
@@ -112,8 +115,16 @@ app.include_router(documents.router, prefix="/api/documents", tags=["Documents"]
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(connectors.router, prefix="/api/connectors", tags=["Connectors"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
+app.include_router(api_keys.router, prefix="/api/api-keys", tags=["API Keys"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
-app.include_router(conversations.router, prefix="/api/conversations", tags=["Conversations"]) 
+app.include_router(conversations.router, prefix="/api/conversations", tags=["Conversations"])
+app.include_router(models.router, tags=["Models"]) 
+app.include_router(files.router, prefix="/api/files", tags=["Files"])
+
+# Mount static files for generated content
+static_dir = Path("static")
+static_dir.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/health")
 async def health_check():

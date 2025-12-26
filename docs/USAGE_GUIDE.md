@@ -229,7 +229,7 @@ To use the external tools, you'll need to obtain API keys. Here is a step-by-ste
 
 ### 4. OAuth APIs (Gmail, Drive, Slack, Notion)
 For these services, you need to create an OAuth App in their respective developer consoles.
-Detailed step-by-step instructions are available in the **[OAuth Setup Guide](OAUTH_SETUP.md)**.
+Detailed step-by-step instructions are available in the **[OAuth Setup Guide](oauth_setup.md)**.
 
 ---
 
@@ -308,7 +308,7 @@ For advanced integrations requiring OAuth authentication.
 **Use Case**: Analyze patterns in your emails or find specific information.
 
 **Setup**:
-1. Configure Gmail OAuth (see [OAuth Setup Guide](OAUTH_SETUP.md))
+1. Configure Gmail OAuth (see [OAuth Setup Guide](oauth_setup.md))
 2. Authorize via the Connectors page
 3. Enable Gmail tool and set `gmail_query` parameter
 
@@ -587,8 +587,8 @@ This means retrieval isn't finding relevant chunks.
 - **Save Useful Queries**: Document query patterns that work well for your use case
 
 For technical setup details, see:
-- [OAuth Setup Guide](OAUTH_SETUP.md) - Configure Gmail, Drive, Slack, Notion
-- [Architecture](ARCHITECTURE.md) - Understand how the system works
+- [OAuth Setup Guide](oauth_setup.md) - Configure Gmail, Drive, Slack, Notion
+- [Architecture](architecture.md) - Understand how the system works
 ## Conversations Management
 
 Manage and organize your chats:

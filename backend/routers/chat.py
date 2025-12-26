@@ -20,6 +20,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     message: str
     use_documents: bool = True
+    selected_documents: Optional[List[str]] = None
     tools: Optional[List[str]] = None  # e.g., ["github", "crypto", "weather"]
     tool_params: Optional[dict] = None
     conversation_id: Optional[str] = None  # Track conversation for history
@@ -45,7 +46,11 @@ async def chat_query(
     # Retrieve relevant context
     context_chunks = []
     if chat_request.use_documents:
-        context_chunks = vector_store.search(chat_request.message, n_results=5)
+        context_chunks = vector_store.search(
+            chat_request.message, 
+            n_results=5,
+            file_filters=chat_request.selected_documents
+        )
 
     # Fetch external API data if requested
     api_data = {}
@@ -66,7 +71,14 @@ async def chat_query(
         "You are an AI assistant with access to documents and external data. "
         "When 'External Data' is provided, treat it as fresh, authoritative information (e.g., Hacker News, Weather, Crypto). "
         "Incorporate it directly into your answer and do not claim lack of internet access—use the data given. "
-        "Provide accurate, helpful answers based on the context provided."
+        "Provide accurate, helpful answers based on the context provided.\n\n"
+        "FILE GENERATION:\n"
+        "If the user asks to generate a file (PDF, Markdown, HTML, CV, Report, Plan, etc.), you MUST wrap the content "
+        "in a special block like this:\n"
+        "<file-artifact filename=\"proposed_filename.pdf\" title=\"Document Title\" format=\"pdf\">\n"
+        "... content of the file (markdown supported) ...\n"
+        "</file-artifact>\n"
+        "Do not just output the text, use this tag so the user can download it."
     )
 
     response = await llm_service.generate(prompt, system_prompt)
@@ -100,6 +112,7 @@ async def websocket_chat(
 
             user_message = message_data.get("message", "")
             use_documents = message_data.get("use_documents", True)
+            selected_documents = message_data.get("selected_documents", None)
             tools = message_data.get("tools", [])
             tool_params = message_data.get("tool_params", {})
             conv_id = message_data.get("conversation_id")
@@ -117,7 +130,11 @@ async def websocket_chat(
             # Retrieve context
             context_chunks = []
             if use_documents:
-                context_chunks = vector_store.search(user_message, n_results=5)
+                context_chunks = vector_store.search(
+                    user_message, 
+                    n_results=5,
+                    file_filters=selected_documents
+                )
 
             # Fetch API data
             api_data = {}
@@ -135,7 +152,14 @@ async def websocket_chat(
                 "You are an AI assistant with access to documents and external data. "
                 "When 'External Data' is provided, treat it as fresh, authoritative information (e.g., Hacker News, Weather, Crypto). "
                 "Incorporate it directly into your answer and do not claim lack of internet access—use the data given. "
-                "Provide accurate, helpful answers based on the context provided."
+                "Provide accurate, helpful answers based on the context provided.\n\n"
+                "FILE GENERATION:\n"
+                "If the user asks to generate a file (PDF, Markdown, HTML, CV, Report, Plan, etc.), you MUST wrap the content "
+                "in a special block like this:\n"
+                "<file-artifact filename=\"proposed_filename.pdf\" title=\"Document Title\" format=\"pdf\">\n"
+                "... content of the file (markdown supported) ...\n"
+                "</file-artifact>\n"
+                "Do not just output the text, use this tag so the user can download it."
             )
 
             # Stream response

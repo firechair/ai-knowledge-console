@@ -10,6 +10,8 @@ from services.llm_service import LLMService
 from services.vector_store import VectorStoreService
 from services.conversation_service import ConversationService
 from services.api_tools import APIToolsService
+from services.config_service import get_config_service, ConfigService
+from services.model_manager import get_model_manager, ModelManager
 from config import get_settings
 
 
@@ -64,3 +66,29 @@ def get_api_tools() -> APIToolsService:
         APIToolsService: Singleton instance of the API tools service
     """
     return APIToolsService()
+
+
+@lru_cache()
+def get_config() -> ConfigService:
+    """
+    Dependency for configuration service.
+
+    Returns a cached instance of ConfigService for managing user settings.
+    The service merges settings.json with .env defaults.
+
+    Returns:
+        ConfigService: Singleton instance of the configuration service
+    """
+    return get_config_service()
+
+
+def get_model_manager_dep() -> ModelManager:
+    """
+    Dependency for model manager service.
+
+    Returns the singleton instance of ModelManager for managing model downloads.
+
+    Returns:
+        ModelManager: Singleton instance of the model manager service
+    """
+    return get_model_manager()

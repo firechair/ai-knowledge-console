@@ -46,17 +46,28 @@ class VectorStoreService:
         )
         return len(chunks)
     
-    def search(self, query: str, n_results: int = 5) -> List[Dict]:
+    def search(self, query: str, n_results: int = 5, file_filters: List[str] = None) -> List[Dict]:
         """Search for relevant chunks"""
         self._ensure_model()
         query_embedding = self.embedding_model.encode([query]).tolist()
         
+        where_clause = None
+        if file_filters:
+            if len(file_filters) == 1:
+                where_clause = {"filename": file_filters[0]}
+            else:
+                where_clause = {"filename": {"$in": file_filters}}
+        
         results = self.collection.query(
             query_embeddings=query_embedding,
             n_results=n_results,
+            where=where_clause,
             include=["documents", "metadatas", "distances"]
         )
         
+        if not results["documents"]:
+            return []
+
         return [
             {
                 "content": doc,
