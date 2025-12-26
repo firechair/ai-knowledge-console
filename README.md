@@ -38,24 +38,35 @@ See [Configuration](#optional-enhancements) below to enable optional features.
 - Ready to clone and run - perfect for portfolio demonstration
 
 ## Features
-- **Document Management**: 
-  - Upload PDF, DOCX, TXT
-  - Chunking + ChromaDB persistent vector store
-  - **New**: Select specific documents for targeted context retrieval via the Chat Settings panel
-- **RAG Chat**: 
-  - REST and WebSocket streaming
-  - **Smart Context**: Filter retrieval by filename (e.g., "Only answer from `CV.pdf`")
-- **Conversation Memory**: Tracks chat history for context-aware follow-up questions
-- **Conversations Management**: 
-  - List, open, rename, delete, bulk delete
-  - **Responsive UI**: Optimized for split-screen and mobile views
-- **External Tools (Optional)**: 
-  - **Unified Tools Panel**: View all available integrations in one list
-  - Public tools (Crypto, Hacker News) enabled by default
-  - Private tools (GitHub, Gmail, etc.) show configuration status
-- **OAuth Integrations**: Gmail, Google Drive, Slack, Notion
-- **Production Docker**: Multi-stage builds, healthchecks, non-root user
-- **CI/CD**: GitHub Actions building and pushing Docker images to GHCR
+
+### Core RAG System
+- **Document Management**: Upload PDF, DOCX, TXT with chunking and ChromaDB indexing
+- **Granular Context Control**: Select specific documents for targeted retrieval
+- **Smart RAG Chat**: REST and WebSocket streaming with conversation memory
+- **Conversation Management**: List, rename, delete, bulk operations with responsive UI
+
+### Advanced Settings (NEW ⭐)
+- **Unified Settings Panel**: Centralized configuration for all system settings
+- **LLM Provider Selection**: Switch between local and cloud providers in real-time
+- **Model Management**: Download GGUF models from HuggingFace with progress tracking
+- **API Key Manager**: Secure storage and validation of service credentials
+- **Cloud Provider Support**: OpenRouter (200+ models), OpenAI, custom endpoints
+
+### File Generation (NEW ⭐)
+- **Multi-Format Export**: Generate PDF, Markdown, or HTML from conversations
+- **Direct Download**: One-click download from chat interface
+- **Absolute URLs**: Docker-compatible URL generation for file access
+
+### External Integrations
+- **Public APIs**: Crypto prices (CoinGecko), Hacker News, GitHub commits, Weather (OpenWeather)
+- **OAuth Services**: Gmail, Google Drive, Slack, Notion with unified connector panel
+- **Tool Configuration**: Visual status indicators and in-app setup
+
+### Production Ready
+- **Docker Support**: Multi-stage builds, health checks, non-root user
+- **CI/CD**: GitHub Actions with automated builds to GHCR
+- **Deployment Options**: Docker Compose, Traefik reverse proxy, systemd service
+- **Security**: CORS, rate limiting, request ID tracking, structured logging
 
 ## Quick Demo
 <video src="docs/media/Registrazione%20schermo%202025-12-26%20alle%2011.26.52.mov" autoplay loop muted playsinline width="800"></video>
@@ -66,17 +77,47 @@ See [Configuration](#optional-enhancements) below to enable optional features.
 3. **Chat**: Asking "Can you make a pdf format of these information provided?"
 4. **Response**: The LLM generates a structured response based *only* on the selected document.
 
+## 🎉 What's New (v2.0 - December 2025)
+
+This is a major enhancement of the AI Knowledge Console with new enterprise features:
+
+- **🎛️ Advanced Settings Management**: Unified settings UI for configuring LLM providers, API keys, and models
+- **☁️ Multi-Provider LLM Support**: Seamlessly switch between local (llama.cpp), OpenRouter, OpenAI, and custom endpoints
+- **📦 Model Management**: Download and manage GGUF models from HuggingFace directly in the UI
+- **📄 File Generation**: Export conversations as PDF, Markdown, or HTML with one click
+- **🏗️ Enhanced Architecture**: Modular component structure with clean separation of concerns
+- **⚙️ Settings Persistence**: User preferences saved in settings.json with automatic migration
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+
 ## Architecture
-> 📖 **Deep Dive**: See [`docs/architecture.md`](docs/architecture.md) for detailed design decisions and GPU setup guides.
 
-- Backend (`/backend`): FastAPI app (`app.py`), served by Gunicorn with Uvicorn workers.
-- Embeddings: `SentenceTransformer` model (`all-MiniLM-L6-v2`).
-- Vector DB: ChromaDB persistent client (`/vectorstore/chroma`).
-- LLM: llama.cpp server running on host at `http://localhost:8080`.
-- Frontend (`/frontend`): React + Vite (built and served by Nginx).
-- Docker Compose (`/docker`): Orchestrates backend and frontend, proxies `/api` through Nginx to backend.
+> 📖 **Complete Documentation**:
+> - [Architecture Guide](docs/ARCHITECTURE.md) - Detailed system design and Docker optimization
+> - [Developer Guide](docs/DEVELOPER_GUIDE.md) - Complete API reference and development setup
+> - [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute to the project
 
-Ports
+### Quick Overview
+
+**Backend:**
+- FastAPI with modular services (LLM, VectorStore, File, Config, ModelManager)
+- Multi-provider LLM abstraction (local/cloud switching)
+- ChromaDB for vector storage, SQLite for conversations
+- OAuth 2.0 integrations for external services
+
+**Frontend:**
+- React + Vite with organized component structure
+- Tailwind CSS + Radix UI components
+- WebSocket streaming for real-time responses
+- Settings management with visual feedback
+
+**Infrastructure:**
+- Docker Compose orchestration
+- Nginx reverse proxy
+- Traefik support with automatic TLS (Let's Encrypt)
+- CI/CD via GitHub Actions → GHCR
+
+**Ports:**
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:8000`
 - LLM (host): `http://localhost:8080`
@@ -350,27 +391,21 @@ VITE_API_URL=http://localhost:8000 npm run dev
 Default dev ports: frontend (5173), backend (8000). CORS allows `http://localhost:5173` and `http://localhost:3000`.
 
 ## API Overview
-- Documents
-  - `POST /api/documents/upload` — Upload and index a document
-  - `GET  /api/documents/list` — List indexed documents
-  - `DELETE /api/documents/{filename}` — Delete indexed chunks for a document
-- Chat
-  - `POST /api/chat/query` — Non-streaming chat; accepts `{ message, use_documents, tools, tool_params, conversation_id }`
-  - `WS   /api/chat/ws` — Streaming chat over WebSocket
-- Conversations
-  - `GET  /api/conversations/` — List conversations (id, created_at, title, last_message_preview)
-  - `GET  /api/conversations/{id}` — Get conversation metadata (messages_count)
-  - `GET  /api/conversations/{id}/messages` — Get full message history
-  - `POST /api/conversations/` — Create a conversation
-  - `POST /api/conversations/{id}/rename` — Set conversation title
-  - `DELETE /api/conversations/{id}` — Delete one conversation
-  - `DELETE /api/conversations/` — Delete all conversations
-- Connectors
-  - `GET  /api/connectors/` — List available connectors and their status
-  - `POST /api/connectors/configure` — Configure a connector with API key
-  - `POST /api/connectors/{name}/toggle` — Enable/disable a connector
-- Health
-  - `GET  /health` — Health probe used by Compose
+
+> 📖 **Complete API Reference**: See [Developer Guide](docs/DEVELOPER_GUIDE.md#api-reference) for detailed endpoint documentation with examples.
+
+**Key Endpoints:**
+- **Documents**: Upload, list, delete indexed documents
+- **Chat**: Streaming (WebSocket) and non-streaming query endpoints
+- **Conversations**: Full CRUD operations with search and bulk delete
+- **Models**: Download and manage GGUF and embedding models
+- **API Keys**: Manage service credentials with status validation
+- **Files**: Generate and download PDF, Markdown, HTML exports
+- **Settings**: Get and update system configuration
+- **Connectors**: OAuth integration management
+- **Health**: Health check endpoint for monitoring
+
+All endpoints are prefixed with `/api` and documented in the [Developer Guide](docs/DEVELOPER_GUIDE.md).
 
 ## Deploy from GHCR
 Use the prebuilt images:
