@@ -1,5 +1,8 @@
 # OAuth Setup Guide
 
+> 📌 **Complete OAuth Setup Guide**
+> For quick reference, see [README.md](../README.md#configuration). This guide provides step-by-step instructions.
+
 This guide explains how to configure OAuth credentials for Gmail, Google Drive, Slack, and Notion.
 
 ## Understanding OAuth
@@ -232,17 +235,10 @@ FRONTEND_BASE_URL=https://your-domain.com
 
 ## Troubleshooting
 
-**"Redirect URI mismatch"**  
-→ Ensure redirect URI in provider settings matches exactly
+For comprehensive OAuth troubleshooting, see the [Troubleshooting Guide](TROUBLESHOOTING.md#oauth--external-api-issues).
 
-**"Invalid client"**  
-→ Double-check CLIENT_ID and CLIENT_SECRET in .env
-
-**"Access denied"**  
-→ User denied permissions, they need to re-authorize
-
-**"Tokens not working"**  
-→ Restart backend after changing .env to reload settings
-
-**"Authorize returns JSON or doesn’t go back to UI"**
-→ Ensure the frontend was launched with `VITE_API_URL` pointing to the backend (e.g., `VITE_API_URL=http://localhost:8000 npm run dev`). The app now sends a `state` with `return_url` and the backend callbacks redirect to `FRONTEND_BASE_URL` (or the `state` URL) after token exchange.
+**Quick fixes**:
+- Redirect URI mismatch → Verify exact URL match in provider console
+- Invalid client → Check CLIENT_ID and CLIENT_SECRET in .env
+- Access denied → Re-authorize with correct permissions
+- Tokens not working → Restart backend after .env changes

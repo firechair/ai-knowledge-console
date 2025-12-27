@@ -181,6 +181,8 @@ AI: [Fresh context, focused on budget]
 
 **Scenario:** Switch from local llama.cpp to cloud provider (OpenRouter).
 
+> 📖 **For initial LLM setup**, see [CONFIGURATION.md](CONFIGURATION.md#llm-provider-settings)
+
 **Steps:**
 1. Navigate to **Settings** → **LLM Configuration**
 2. Toggle provider type to **Cloud**
@@ -365,7 +367,7 @@ To use the external tools, you'll need to obtain API keys. Here is a step-by-ste
 
 ### 4. OAuth APIs (Gmail, Drive, Slack, Notion)
 For these services, you need to create an OAuth App in their respective developer consoles.
-Detailed step-by-step instructions are available in the **[OAuth Setup Guide](oauth_setup.md)**.
+Detailed step-by-step instructions are available in the **[OAuth Setup Guide](OAUTH_SETUP.md)**.
 
 ---
 
@@ -444,7 +446,7 @@ For advanced integrations requiring OAuth authentication.
 **Use Case**: Analyze patterns in your emails or find specific information.
 
 **Setup**:
-1. Configure Gmail OAuth (see [OAuth Setup Guide](oauth_setup.md))
+1. Configure Gmail OAuth (see [OAuth Setup Guide](OAUTH_SETUP.md))
 2. Authorize via the Connectors page
 3. Enable Gmail tool and set `gmail_query` parameter
 
@@ -648,46 +650,13 @@ Set these in the Sidebar to filter API queries:
 
 ## Troubleshooting Common Scenarios
 
-### "I can't find information I know is in my documents"
+For comprehensive troubleshooting help, see the [Troubleshooting Guide](TROUBLESHOOTING.md).
 
-**Possible Causes**:
-1. Document wasn't fully indexed (check Documents page)
-2. Query doesn't match vocabulary used in doc (try rephrasing)
-3. Chunk size too small (info split across multiple chunks)
-
-**Solutions**:
-- Rephrase query using exact terms from document
-- Ask "What topics are covered in my documents?" to see what's indexed
-- Try more specific queries with page numbers or section names
-
-### "External tool isn't returning data"
-
-**Checklist**:
-1. Is the tool enabled in Connectors?
-2. Is the API key configured (if required)?
-3. Are parameters set correctly? (check Sidebar)
-4. For OAuth: Is authorization status "Authorized"?
-
-### "Answers are generic/not using my documents"
-
-This means retrieval isn't finding relevant chunks.
-
-**Fix**:
-- Check Documents page - are files successfully uploaded?
-- Try: "List all documents you have access to"
-- Use more specific queries that match document content
-
-### Repetitive or stuttering responses
-
-**Symptoms**:
-- Output like `HiHi!! How How can can I I help help...`.
-
-**Cause**:
-- Streaming deltas can duplicate initial tokens, and some models stutter when sampling without penalties.
-
-**Resolution**:
-- Client-side normalization collapses duplicate words/punctuation.
-- For finer control, tune LLM payload parameters (OpenRouter): `temperature`, `top_p`, `frequency_penalty`, `presence_penalty`, `repetition_penalty`, `max_tokens` via backend configuration.
+**Common usage issues**:
+- Can't find information in documents → Check indexing status and rephrase queries
+- External tools not working → Verify tool is enabled and API keys are configured
+- Generic answers instead of document-based → Check document selection and retrieval settings
+- Repetitive responses → Adjust LLM parameters or check streaming configuration
 
 ---
 
@@ -723,7 +692,7 @@ This means retrieval isn't finding relevant chunks.
 - **Save Useful Queries**: Document query patterns that work well for your use case
 
 For technical setup details, see:
-- [OAuth Setup Guide](oauth_setup.md) - Configure Gmail, Drive, Slack, Notion
+- [OAuth Setup Guide](OAUTH_SETUP.md) - Configure Gmail, Drive, Slack, Notion
 - [Architecture](architecture.md) - Understand how the system works
 ## Conversations Management
 

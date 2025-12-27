@@ -1,5 +1,8 @@
 # Configuration Reference
 
+> 📌 **Canonical Configuration Reference**
+> This is the authoritative source for all environment variables and settings.
+
 Complete guide to all configuration options for the AI Knowledge Console.
 
 ---
@@ -396,7 +399,7 @@ NOTION_CLIENT_SECRET=...
 
 **Obtaining Credentials:**
 
-See the [OAuth Setup Guide](oauth_setup.md) for detailed instructions on creating OAuth applications for each provider.
+See the [OAuth Setup Guide](OAUTH_SETUP.md) for detailed instructions on creating OAuth applications for each provider.
 
 **Security:**
 - Never commit credentials to git
@@ -497,35 +500,12 @@ CONVERSATIONS_DB_PATH=/app/data/conversations.db
 
 ## Troubleshooting Configuration
 
-### LLM not responding
+For comprehensive troubleshooting help, see the [Troubleshooting Guide](TROUBLESHOOTING.md).
 
-**Check:**
-1. `LLM_PROVIDER` matches your setup (`local` or `openrouter`)
-2. For `local`: llama.cpp server is running and accessible
-3. For `openrouter`: API key is valid and has credits
-4. Backend logs for connection errors
-
-### OAuth redirects failing
-
-**Check:**
-1. `APP_BASE_URL` matches OAuth app callback URL exactly
-2. `FRONTEND_BASE_URL` is accessible from user's browser
-3. No trailing slashes in URLs
-4. HTTP vs HTTPS matches exactly
-
-### Documents not persisting
-
-**Check:**
-1. `CHROMA_PERSIST_DIR` path exists and is writable
-2. In Docker: volume is mounted correctly
-3. Disk space is available
-
-### Conversations not saving
-
-**Check:**
-1. `CONVERSATIONS_DB_PATH` directory exists
-2. File has write permissions
-3. SQLite is installed (should be built-in)
+**Common configuration issues**:
+- LLM not responding → Check provider settings and API keys
+- OAuth redirects failing → Verify URL configuration matches exactly
+- Data not persisting → Check directory paths and permissions
 
 ---
 
@@ -546,5 +526,5 @@ CONVERSATIONS_DB_PATH=/app/data/conversations.db
 
 **Last Updated:** December 1, 2025  
 **Related Docs:**
-- [OAuth Setup Guide](oauth_setup.md)
+- [OAuth Setup Guide](OAUTH_SETUP.md)
 - [Architecture](architecture.md)

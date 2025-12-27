@@ -4,11 +4,15 @@
 
 ## 📚 Documentation
 
-- **[License](LICENSE)** - GPL v3.0 with Non-Commercial clause
-- **[System Architecture](docs/architecture.md)** - Technical design, Docker optimization, and GPU setup guide
-- **[Configuration Guide](docs/configuration.md)** - Complete reference for all environment variables and settings
-- **[OAuth Setup Guide](docs/oauth_setup.md)** - Detailed instructions for Gmail, Drive, Slack, Notion integration
-- **[Usage Guide](docs/usage_guide.md)** - Practical scenarios and examples for different use cases
+**For detailed documentation, see the [docs/](docs/) directory:**
+
+- 📖 **[Configuration Guide](docs/CONFIGURATION.md)** - Complete environment variable reference
+- 🎯 **[Usage Guide](docs/USAGE_GUIDE.md)** - Practical examples and workflows
+- 🔐 **[OAuth Setup](docs/OAUTH_SETUP.md)** - Gmail, Drive, Slack, Notion integration
+- 💻 **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - API reference and development setup
+- 🏗️ **[Architecture Guide](docs/ARCHITECTURE.md)** - System design and technical details
+- 🐛 **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- 🤝 **[Contributing](docs/CONTRIBUTING.md)** - How to contribute
 
 
 An end-to-end Retrieval-Augmented Generation (RAG) web application. Upload your documents (PDF, DOCX, TXT), index them into a vector store (ChromaDB) with `SentenceTransformers`, and chat with a local LLM (llama.cpp) enriched by relevant document context and optional external tools (GitHub, Crypto, Weather, Hacker News, Gmail, Drive, Slack, Notion).
@@ -140,103 +144,67 @@ See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
 ## LLM Setup Guide
 
-You have several options to power the AI responses. Choose the one that fits your needs:
+Choose one option to power AI responses:
 
 ### Option 1: llama.cpp (Local, Private)
 
-**Pros**: No API costs, full privacy, works offline  
-**Cons**: Requires downloading models, more setup
+**Best for**: Privacy, no API costs, offline use
 
-1. **Download llama.cpp**:
+1. **Download llama.cpp** and a model:
    ```bash
    git clone https://github.com/ggerganov/llama.cpp
-   cd llama.cpp
-   make
+   cd llama.cpp && make
+   # Download GGUF model from HuggingFace
    ```
 
-2. **Download a model** (GGUF format):
-   - Visit [HuggingFace](https://huggingface.co/models?library=gguf) to find models
-   - Example: `Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf`
-   - Download to your local machine
-
-3. **Start the server**:
+2. **Start the server**:
    ```bash
    ./server -m /path/to/model.gguf -c 4096 --port 8080 --host 0.0.0.0
    ```
-   
-   **Important flags**:
-   - `-m`: Path to your model file
-   - `-c 4096`: Context window size
-   - `--port 8080`: Server port (must match backend config)
-   - `--host 0.0.0.0`: Makes it accessible from Docker containers
 
-4. **Verify it's running**:
-   ```bash
-   curl http://localhost:8080/health
+3. **Configure** `backend/.env`:
+   ```env
+   LLM_PROVIDER=local
+   LLM_BASE_URL=http://localhost:8080
    ```
 
-### Option 2: OpenRouter API (Hosted Models)
+### Option 2: OpenRouter (Cloud Models)
 
-**Pros**: No local resources needed, access to multiple models including GPT-4, Claude, etc.  
-**Cons**: Requires API key and internet connection, small cost per request
+**Best for**: No local setup, access to GPT-4, Claude, Gemini, etc.
 
-1. **Get an API key** from [OpenRouter](https://openrouter.ai/keys)
+1. **Get API key** from [OpenRouter](https://openrouter.ai/keys)
 
-2. **Configure the backend** (`backend/.env`):
+2. **Configure** `backend/.env`:
    ```env
    LLM_PROVIDER=openrouter
    OPENROUTER_API_KEY=sk-or-v1-...
    OPENROUTER_MODEL=x-ai/grok-4.1-fast
    ```
 
-3. **Choose your model**:
-   - `x-ai/grok-4.1-fast` - Fast responses, good quality (default)
-   - `anthropic/claude-3.5-sonnet` - Excellent reasoning
-   - `openai/gpt-4-turbo` - Best general purpose
-   - `google/gemini-pro-1.5` - Good balance of speed and quality
-   - See [OpenRouter Models](https://openrouter.ai/models) for full list
+**Popular models**: `anthropic/claude-3.5-sonnet`, `openai/gpt-4-turbo`, `google/gemini-pro-1.5`
+See [all models](https://openrouter.ai/models)
 
-4. **Optional: Fine-tune generation** (in `.env`):
-   ```env
-   OPENROUTER_TEMPERATURE=0.7      # 0.0-2.0, higher = more creative
-   OPENROUTER_MAX_TOKENS=1024      # Max response length
-   OPENROUTER_FREQUENCY_PENALTY=0.2 # Reduce repetition
-   ```
+### Option 3: Ollama (Easy Local)
 
-**How it works:** Backend streams from OpenRouter's API via Server-Sent Events (SSE) and forwards to frontend WebSocket.
+**Best for**: Simplicity, automatic model management
 
-**Note:** OpenRouter provides unified access to OpenAI, Anthropic, Google, and other providers. If you want GPT-4, use model `openai/gpt-4-turbo` through OpenRouter.
+```bash
+# Install
+brew install ollama  # macOS
+curl -fsSL https://ollama.com/install.sh | sh  # Linux
 
-### Option 3: Ollama (Easy Local Setup)
+# Pull model and start
+ollama pull llama3.1:8b
+ollama serve
+```
 
-**Pros**: Simpler than llama.cpp, automatic model management  
-**Cons**: Still requires local resources
+**Configure** `backend/.env`:
+```env
+LLM_PROVIDER=local
+LLM_BASE_URL=http://localhost:11434/v1
+```
 
-1. **Install Ollama**:
-   ```bash
-   # macOS
-   brew install ollama
-   
-   # Linux
-   curl -fsSL https://ollama.com/install.sh | sh
-   ```
-
-2. **Pull a model**:
-   ```bash
-   ollama pull llama3.1:8b
-   ```
-
-3. **Start Ollama** (it runs on port 11434 by default):
-   ```bash
-   ollama serve
-   ```
-
-4. **Configure backend** (`backend/.env`):
-   ```env
-   LLM_PROVIDER=local
-   LLM_BASE_URL=http://localhost:11434/v1
-   ```
-  Ollama provides an OpenAI-compatible endpoint at `/v1`.
+📖 **Complete setup guide**: See [CONFIGURATION.md](docs/CONFIGURATION.md#llm-provider-settings) for advanced options
 
 
 ## Quickstart: Docker (macOS/Windows)
@@ -287,89 +255,36 @@ docker compose up --build -d
 
 ## Configuration
 
-### Required: LLM Setup
+### Minimum Setup
 
-The app requires an LLM server. Choose one option from the [LLM Setup Guide](#llm-setup-guide) above.
+**Create `backend/.env`** with LLM provider settings (see [LLM Setup Guide](#llm-setup-guide)):
 
-**Minimum `.env` for core functionality:**
 ```env
 LLM_PROVIDER=local
 LLM_BASE_URL=http://localhost:8080
 ```
 
-### Optional Enhancements
+That's it! Core RAG functionality works with just these two variables.
 
-The following features are **entirely optional**. The app works perfectly without them.
+### Optional Features
 
-#### Simple API Tools (No OAuth)
-
-Add API keys to enable these tools:
-
+**Simple API Tools** (no OAuth required):
 ```env
-# GitHub: Search repository commits
-GITHUB_TOKEN=your_github_token
-
-# Weather: Current conditions
-OPENWEATHER_API_KEY=your_api_key
+GITHUB_TOKEN=your_token           # Repository commit search
+OPENWEATHER_API_KEY=your_key      # Weather conditions
 ```
 
-**How to get**:
-- GitHub: [Personal Access Token](https://github.com/settings/tokens)
-- Weather: [OpenWeather API](https://openweathermap.org/api)
+**OAuth Integrations** (Gmail, Drive, Slack, Notion):
+- See complete guide: [OAUTH_SETUP.md](docs/OAUTH_SETUP.md)
+- Quick: Create OAuth apps, add credentials to `.env`, authorize in UI
 
-#### Advanced OAuth Integrations
-
-**Gmail, Google Drive, Slack, Notion** require OAuth 2.0 setup.
-
-**Quick checklist**:
-1. Create an OAuth app in each provider (Google Cloud, Slack, Notion)
-2. Add credentials to `.env` and dev URLs:
-   ```env
-   GOOGLE_CLIENT_ID=...
-   GOOGLE_CLIENT_SECRET=...
-   SLACK_CLIENT_ID=...
-   SLACK_CLIENT_SECRET=...
-   NOTION_CLIENT_ID=...
-   NOTION_CLIENT_SECRET=...
-    APP_BASE_URL=http://localhost:8000
-    FRONTEND_BASE_URL=http://localhost:5173
-   ```
-3. Start frontend with backend URL: `VITE_API_URL=http://localhost:8000 npm run dev`
-4. Authorize in the **Connectors** tab; you’ll be redirected to the provider and back to the app
-5. See full steps in **docs/oauth_setup.md**
-
-### Full .env Example
-
-```env
-# Required
-LLM_PROVIDER=local
-LLM_BASE_URL=http://localhost:8080
-CHROMA_PERSIST_DIR=../vectorstore/chroma
-
-# Optional: Simple API Tools
-GITHUB_TOKEN=
-OPENWEATHER_API_KEY=
-
-# Optional: OAuth Integrations
-APP_BASE_URL=http://localhost:8000
-FRONTEND_BASE_URL=http://localhost:5173
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-SLACK_CLIENT_ID=
-SLACK_CLIENT_SECRET=
-NOTION_CLIENT_ID=
-NOTION_CLIENT_SECRET=
-
-# Optional: OpenRouter (Hosted LLM)
-LLM_PROVIDER=openrouter
-OPENROUTER_API_KEY=
-```
-
-Copy from example:
+**Quick start**:
 ```bash
 cp backend/.env.example backend/.env
-# Edit backend/.env with your credentials (only if you want optional features)
+# Edit with your LLM provider settings
 ```
+
+📖 **Complete configuration reference**: See [CONFIGURATION.md](docs/CONFIGURATION.md) for all environment variables
 
 ## Local Development (without Docker)
 
@@ -497,23 +412,13 @@ Traefik:
 - Production: use the TLS compose with `TRAEFIK_EMAIL` and `TRAEFIK_DOMAIN`
 
 ## Troubleshooting
-- **Docker daemon not running:** Start Docker Desktop (macOS/Windows) or ensure Docker Engine service is active (Linux).
-- **Infinite Spinner / Backend Unresponsive:**
-  - Check `curl http://localhost:8000/health` returns `{"status":"healthy"}`.
-  - First-time embedding model load is lazy; allow time for download/init on first document add/search.
-  - Ensure `sentence-transformers` and `chromadb` dependencies are installed (if running locally).
-  - Verify CORS `allowed_origins` in `.env` includes your frontend URL (e.g., `http://localhost:5173`).
-- **External Tools/OAuth Issues:**
-  - **Tools inactive:** Verify the connector is "Enabled" in the Connectors tab and API keys are set in `.env` (restart backend after `.env` changes).
-  - **OAuth JSON response/Stall:** Ensure frontend is started with `VITE_API_URL` pointing to backend (e.g., `VITE_API_URL=http://localhost:8000 npm run dev`). Check that `APP_BASE_URL` and `FRONTEND_BASE_URL` in `.env` match your actual URLs exactly.
-- **Data Persistence:**
-  - **Documents missing:** Check `CHROMA_PERSIST_DIR` path exists and is writable.
-  - **Conversations missing:** Check `backend/conversations.db` exists and has write permissions.
-- **Linux LLM connectivity:** Use `host-gateway` mapping (already set in compose). Confirm host LLM is listening on `:8080` (use `--host 0.0.0.0`).
-- **SSL warnings (`urllib3`):** Cosmetic on macOS LibreSSL; does not affect functionality.
-- **WebSocket Streaming:**
-  - In React Strict Mode (dev), you may see transient "WebSocket closed" logs; this is normal due to double-invocation of effects.
-  - If responses repeat or stutter, check `OPENROUTER_FREQUENCY_PENALTY` or client-side normalization logic.
+
+For comprehensive troubleshooting help, see the [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
+
+**Quick checks**:
+- Backend health: `curl http://localhost:8000/health`
+- View logs: `docker compose logs -f backend`
+- Restart services: `docker compose restart`
 
 ## Single-VM Deployment
 Minimum specs:
